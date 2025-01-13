@@ -1,0 +1,213 @@
+{% extends 'layout_bs5.html' %}
+{% load static %}
+
+{% block title %}Home{% endblock %}
+
+{% block localstyles%}
+<style>
+.navbar-dark .navbar-nav .nav-link {
+  color: rgba(255, 255, 255, .95);
+}
+main.app-main {
+  padding: 0;
+}
+.intro {
+  background-image: linear-gradient(180deg, #2368ec, #2fd6fb);
+  padding: 100px;
+}
+.service-container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.service-box {
+  display: flex;
+}
+
+.service-box {
+  flex-direction: row;
+}
+
+.service-box.service-box-right-illustration {
+  flex-direction: row-reverse;
+}
+
+.service-box-image {
+  width: 60%;
+}
+
+.service-box-image, .service-box-text {
+  padding: 5rem 2.5%;
+}
+
+.service-box-image-wrapper {
+  width: 100%;
+  margin: 0 auto;
+}
+
+.service-box-image-wrapper-innner {
+  display: block;
+  width: 100%;
+  height: 0;
+  padding-bottom: 73%;
+  position: relative;
+}
+
+.service-box-text {
+  width: 40%;
+}
+
+.service-box-title {
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 0.92307;
+  color: #435068;
+}
+
+service-box-image-wrapper-inner > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+@media only screen and (min-width: 56.3125rem) {
+  .service-box-text {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+@media only screen and (max-width: 56.25rem) {
+  .intro {
+    padding: 100px 10px;
+  }
+
+  .service-box {
+    margin-bottom: 2rem;
+  }
+
+  .service-box > * {
+    width: 100%;
+    max-width: 40.625rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .service-box .service-box-text {
+    padding-bottom: 0;
+    padding-top: 3rem;
+  }
+
+  .service-box-title {
+    font-size: 2.625rem;
+  }
+
+  .service-box .service-box-image {
+    padding-top: 0;
+    padding-bottom: 3.333333rem;
+  }
+
+  .service-box-image {
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+    /*margin-left: -10%;
+    width: 120%;*/
+    width: 100%;
+  }
+
+  .service-box-image .service-box-image-wrapper {
+    width: 100%;
+    max-width: 31.25rem;
+  }
+
+  .service-box, .service-box.service-box-right-illustration {
+    flex-direction: column-reverse;
+  }
+}
+.signup-button {
+  display: inline-block;
+  box-sizing: border-box;
+  appearance: none;
+  background-color: #903;
+  border: 2px solid #dd1843;
+  border-radius: 5rem;
+  cursor: pointer;
+  align-self: center;
+  font-size: 1.3rem;
+  font-weight: 500 !important;
+  line-height: 1;
+  margin: 20px;
+  padding: 1.2rem 2.5rem;
+  text-decoration: none;
+  text-align: center;
+  text-transform: uppercase;
+  color: #fff;
+  box-shadow: 0 0 40px 40px #dd1843 inset, 0 0 0 0 #dd1843;
+  transition: all 150ms ease-in-out;
+}
+.signup-button:hover {
+  border-color: #990033;
+  box-shadow: 0 0 10px 0 #990033 inset, 0 0 10px 4px #990033;
+}
+.signup-button:hover, .signup-button:focus {
+  color: #fff;
+  outline: 0;
+}
+.pulse {
+  animation: shadow-pulse 1.2s ease infinite;
+  background: #dd1843;
+}
+@keyframes shadow-pulse {
+  0% {
+    box-shadow: 0 0 0 0px rgba(221, 24, 67, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 25px rgba(221, 24, 67, 0);
+  }
+}
+
+
+.footer-theme {
+  color: #fff;
+  background-color: #fe4066;
+}
+.font-weight-bold {
+  font-weight: 600;
+}
+.footer-container > .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+.footer-container hr.teal {
+  height: 2px;
+}
+</style>
+{% endblock %}
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block main %}
+<div class="home">
+
+    <div class="row flex-xl-nowrap mb-5 mx-0">
+        <div class="col-12">
+            <div class="text-center" style="margin:auto; padding-bottom:50px">
+                <h3 style="color: #435068; opacity: 0.7; font-size: 2.4rem">Hello!</h3>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block footer %}
+{% include 'footer_v2.html' %}
+{% endblock %}
+

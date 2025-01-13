@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Activation Done{% endblock %}
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block content_class %}block-content mt-navbar theme-07{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row pt-4">
+        <div class="col-12">
+            <div class="row mw-500 mx-auto card theme-00">
+                <div class="card-header mb-2 theme-00">
+                    <div class="col-12 text-center user-header">Your account is activated</div>
+                </div>
+                <div class="col-12 mb-2 text-white">
+                    Your account is activated. <a href="{% url 'auth' %}">Login</a> your account now.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

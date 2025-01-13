@@ -1,0 +1,28 @@
+{% extends 'layout.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Lock Out{% endblock %}
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block content_class %}block-content theme-07{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-navbar theme-07">
+  <div class="row pt-4">
+    <div class="col-12">
+      <div class="row mw-500 mx-auto card theme-00">
+        <div class="card-header mb-2 theme-00">
+          <div class="col-12 text-center user-header">Account Locked</div>
+        </div>
+        <div class="col-12 text-white">
+          Too many attempts. Your IP is locked out. Please come back later.
+        </div>
+        <div class="col-12 text-center py-2">
+          <a class="btn theme-04 mt-3 full-width" href="{% url 'password_reset' %}">Reset your password</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends 'layout.html' %}
+{% load i18n %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+{% block title %}Compose{% endblock %}
+
+{% block content %}
+<div class="main" id="main">
+  <ol class="statusbar">
+    <li class="statusbar-item">
+      <div class="d-table h-100">
+        <div class="d-table-cell align-middle font-md fw-500">
+          Compose
+        </div>
+      </div>
+    </li>
+  </ol>
+  <div class="message-body px-3">
+
+    <div class="col-sm px-0">
+      <div class="modal-body px-0 pt-0">
+        <form method="post" id="compose-form" novalidate>
+          {% csrf_token %}
+
+          {% for hidden_field in form.hidden_fields %}
+            {{ hidden_field }}
+          {% endfor %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+              {% for error in form.non_field_errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% for field in form.visible_fields %}
+            <div class="form-group">
+              {{ field.label_tag }}
+
+              {% if form.is_bound %}
+                {% if field.errors %}
+                  {% render_field field class="form-control is-invalid" %}
+                  {% for error in field.errors %}
+                    <div class="invalid-feedback">
+                      {{ error }}
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  {% render_field field class="form-control is-valid" %}
+                {% endif %}
+              {% else %}
+                {% render_field field class="form-control" %}
+              {% endif %}
+
+              {% if field.help_text %}
+                <small class="form-text text-muted">{{ field.help_text }}</small>
+              {% endif %}
+            </div>
+          {% endfor %}
+
+          <button type="submit" class="btn btn-primary">Send</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

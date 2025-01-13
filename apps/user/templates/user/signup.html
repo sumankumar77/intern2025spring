@@ -1,0 +1,91 @@
+{% extends 'layout.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block content_class %}block-content{% endblock %}
+
+{% block content %}
+  <div class="container-fluid theme-07">
+    <div class="row pt-4">
+      <div class="col-12">
+        <div class="row mw-500 mx-auto card theme-00">
+          <div class="card-header mb-2 theme-00">
+            <div class="col-12 text-center user-header">Sign Up</div>
+          </div>
+          <div class="col-12 mb-2">
+            <form method="post" autocomplete="off" novalidate>
+              {% csrf_token %}
+
+              {% for hidden_field in form.hidden_fields %}
+                {{ hidden_field }}
+              {% endfor %}
+
+              {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                  {% for error in form.non_field_errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              {% for field in form.visible_fields %}
+                <div class="form-group">
+                  {% if form.is_bound %}
+                    {% if field.errors %}
+                      {% if field.name == 'password1' %}
+                        {% render_field field class="password_strength form-control is-invalid" placeholder="password" %}
+                      {% elif field.name == 'password2' %}
+                        {% render_field field class="password_confirmation form-control is-invalid" placeholder="password confirmation" %}
+                      {% else %}
+                        {% render_field field class="form-control is-invalid" placeholder=field.name %}
+                      {% endif %}
+                      {% for error in field.errors %}
+                        <div class="invalid-feedback">
+                          {{ error }}
+                        </div>
+                      {% endfor %}
+                    {% else %}
+                      {% if field.name == 'password1' %}
+                        {% render_field field class="password_strength form-control is-valid" placeholder="password" %}
+                      {% elif field.name == 'password2' %}
+                        {% render_field field class="password_confirmation form-control is-valid" placeholder="password confirmation" %}
+                      {% else %}
+                        {% render_field field class="form-control is-valid" placeholder=field.name %}
+                      {% endif %}
+                    {% endif %}
+                  {% else %}
+                    {% if field.name == 'password1' %}
+                      {% render_field field class="password_strength form-control" placeholder="password" %}
+                    {% elif field.name == 'password2' %}
+                      {% render_field field class="password_confirmation form-control" placeholder="password confirmation" %}
+                    {% else %}
+                      {% render_field field class="form-control" placeholder=field.name %}
+                    {% endif %}
+                  {% endif %}
+
+                  {% if field.help_text %}
+                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                  {% endif %}
+                </div>
+              {% endfor %}
+
+              <button type="submit" class="btn theme-04 mt-3 full-width">Sign Up</button>
+            </form>
+          </div>
+          <div class="card-footer theme-00 text-white">
+            <small>By signing up, you agree to our <a href="{% url 'terms_of_service' %}">terms of service</a> and
+              <a href="{% url 'privacy_policy' %}">privacy policy</a>.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block localscripts %}
+  {{ form.media }}
+{% endblock %}

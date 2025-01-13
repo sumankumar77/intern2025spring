@@ -1,0 +1,480 @@
+{% extends 'green_diabetes_waste/base.html' %}
+{% load i18n %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+{% block title %}{{ form_title|title }}{% endblock %}
+
+{% block localstyles %}
+<style>
+/*  --- smart form css starts --- */
+.form-check-input[type=radio],
+input.form-check-box[type=checkbox] {
+  visibility: visible!important;
+}
+.form-check-input, input.form-check-box {
+  width: 1em;
+  height: 1em;
+  margin-top: .3em;
+  vertical-align: top;
+  background-repeat: no-repeat;
+  background-position: 50%;
+  background-size: contain;
+  border: 1px solid rgba(0,0,0,.25);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  print-color-adjust: exact;
+}
+.form-check-input {
+  /*position: relative!important;*/
+  width: 1.125rem;
+  height: 1.125rem;
+  background-color: #fff;
+  border: .125rem solid rgba(0,0,0,.25);
+}
+.form-check-input[type=radio] {
+  /*visibility: visible!important;*/
+  border-radius: 50%;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: .125em;
+  margin-right: 4px;
+  top: 0.35rem;
+}
+.form-check-input[type=radio]:checked {
+  background-image: none;
+  background-color: #fff;
+}
+.form-check-input[type=radio]:before {
+  width: 1rem;
+  height: 1rem;
+}
+.form-check-input:before {
+  content: "";
+  position: absolute;
+  box-shadow: 0 0 0 13px transparent;
+  border-radius: 50%;
+  width: .875rem;
+  height: .875rem;
+  background-color: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0);
+}
+.form-check-input:checked:before {
+  opacity: .16;
+}
+.form-check-input[type=radio]:after {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  z-index: 1;
+  display: block;
+  border-radius: 50%;
+  background-color: #fff;
+}
+.form-check-input[type=radio]:checked:after {
+  border-radius: 50%;
+  width: .625rem;
+  height: .625rem;
+  border-color: #3b71ca;
+  background-color: #3b71ca;
+  transition: border-color;
+  transform: translate(-50%,-50%);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+input.form-check-box {
+  position: relative;
+}
+input.form-check-box:checked {
+  color: #fff;
+  border-color: #007bff;
+  background-color: #007bff;
+}
+input.form-check-box::after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  content: "";
+  background: 50% / 50% 50% no-repeat;
+}
+input.form-check-box:checked:after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3e%3cpath fill='%23fff' d='M6.564.75l-3.59 3.612-1.538-1.55L0 4.26l2.974 2.99L8 2.193z'/%3e%3c/svg%3e");
+}
+.form-check-input.form-check-input-sm[type=radio] {
+  width: 1rem;
+  height: 1rem;
+  /*margin-top: .125em;
+  margin-right: 4px;*/
+  top: 0.475rem;
+}
+.form-check-input.form-check-input-sm[type=radio]:before {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+.form-check-input.form-check-input-sm[type=radio]:after {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+.form-check-input.form-check-input-sm[type=radio]:checked:after {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+/*  --- smart form css ends --- */
+
+.max-width-xl {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto
+}
+.form-header-group {
+  background-color: #fff;
+  margin: 0;
+  padding: 24px 0;
+  text-align: center
+}
+.form-header-text {
+  color: #2E7D32;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+.form-sub-header-text {
+  color: #2e7d32;
+  font-size: 1.35rem;
+  font-weight: 400;
+}
+@media (max-width: 576px) {
+  .form-header-text{
+    font-size: 1.25rem;
+  }
+  .form-sub-header-text {
+    display: none
+  }
+}
+.form-group {
+  margin: 0;
+  padding: 12px 36px;
+  clear: both;
+  display: block;
+  position: relative;
+}
+.form-label {
+  display: block;
+  color: #004d40;
+  text-align: left;
+  font-family: Helvetica, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  word-break: break-word;
+}
+.form-check-label, ul.form-check-box > li > label {
+  color: #004d40;
+  font-size: 1.2rem;
+  font-weight: 400;
+  word-break: break-word;
+}
+.mw200px {
+  max-width: 200px
+}
+.mw25 {
+  max-width: 25%
+}
+.mw50 {
+  max-width: 50%
+}
+.mw75 {
+  max-width: 75%
+}
+input.form-check-box[type=checkbox] {
+  margin-top: 0.15rem;
+  margin-right: .25rem;
+  border: .125rem solid rgba(0,0,0,.25);
+}
+.form-check-input.form-check-input-sm[type=radio] {
+  top: 0.19rem!important;
+  margin-left: 0;
+  left: 0;
+}
+.form-group > div {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.form-check {
+  position: relative;
+  width: 100%;
+  min-height: 1px;
+  padding-right: .625rem;
+  padding-left: 1.375rem;
+}
+/* the order matters */
+@media (min-width: 576px) {
+  .form-check {
+    -ms-flex: 0 0 50%;
+    flex: 0 0 50%;
+    max-width: 50%
+  }
+}
+@media (min-width: 768px) {
+  .form-check {
+    -ms-flex: 0 0 33.333333%;
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%
+  }
+}
+@media (min-width: 1280px) {
+  .form-check {
+    -ms-flex: 0 0 25%;
+    flex: 0 0 25%;
+    max-width: 25%
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content">
+  <div class="max-width-xl">
+    <div class="col">
+      <div class="form-input-wide">
+        <div class="form-header-group">
+          <div class="form-header-text">
+            {{ form_title|title }}
+          </div>
+          <div class="form-sub-header-text">
+            Quantifying the Amount of Environmental Waste Associated with Devices and Technology
+          </div>
+        </div>
+      </div>
+      <form method="post" autocomplete="off" novalidate>
+        {% csrf_token %}
+
+        {% for hidden_field in form.hidden_fields %}
+          {{ hidden_field }}
+        {% endfor %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger" role="alert">
+            {% for error in form.non_field_errors %}
+              {{ error }}
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% for field in form.visible_fields %}
+          {% if field.name|not_parts %}
+
+            <div class="form-group{% if field.name|starts_with_if %} d-none{% endif %}{% if field.field.widget.attrs.class|has_real_section_title %} section-title{% endif %}">
+
+              <label class="form-label{% if field.field.widget.attrs.class|has_section_title %} {{ field.field.widget.attrs.class|get_section_title }}{% endif %}">
+                {% if field.field.widget.attrs.class|has_substring:'inline-checkbox-left' %}
+                  {% render_field field %}
+                {% endif %}
+
+                {% with field_label=field.label|extract_field_label %}{% trans field_label %}{% endwith %}
+                {% if field.label|has_sub_label %}
+                  <small class="form-text text-muted">{{ field.label|extract_field_sub_label | safe }}</small>
+                {% endif %}
+
+                {% if field.field.widget.attrs.class|has_substring:'inline-checkbox-right' %}
+                  {% render_field field %}
+                {% endif %}
+              </label>
+
+              {% if field.field.widget.attrs.class|not_substring:'inline-checkbox' %}
+                <!--<div class="form-field">-->
+                  {% if form.is_bound %}
+                    {% if field.errors %}
+                      {% render_field field class+="is-invalid" %}
+                      {% for error in field.errors %}
+                        <div class="invalid-feedback">
+                          {{ error }}
+                        </div>
+                      {% endfor %}
+                    {% else %}
+                      {% render_field field class+="is-valid" %}
+                    {% endif %}
+                  {% else %}
+                    {% render_field field %}
+                  {% endif %}
+
+                  {% if field.help_text %}
+                    <small class="form-text text-muted">{{ field.help_text | safe }}</small>
+                  {% endif %}
+
+                <!--</div>-->
+              {% endif %}
+
+            </div>
+
+          {% endif %}
+        {% endfor %}
+
+        {% if editable %}
+          <button id="save-form" type="submit" class="ibtn ibtn-primary">{% trans 'Save' %}</button>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block localscripts %}
+{{ form.media }}
+<script>
+//(function() {
+
+  /*
+  window.DH_USER = {{ user.pk }};
+  window.DH_POST = {{ subject.pk }};
+  window.GAS_URL = "https://script.google.com/macros/s/AKfycbzQ6PkeJsDa-ormty_VhzlXasbI0nEcNv7uyk7KhVpU2YM3FEGLV_AYILbJ4t7nfZRo-A/exec?";
+
+  const sendGasEvent = function(data) {
+    const esc = encodeURIComponent;
+    const queryString = Object.keys(data).map(k => esc(k) + '=' + esc(data[k])).join('&');
+    const url = GAS_URL + queryString;
+    const xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
+    xhr.open("GET", url);
+    xhr.send();
+  }
+
+  window.onload = function () {
+    const data = {'user': DH_USER, 'post': DH_POST, 'event': 'AP(load)', 'timestamp': new Date().getTime()};
+    sendGasEvent(data);
+  }
+  */
+
+  String.prototype.splice = function (idx, rem, str) {
+    return this.slice(0, idx) + str + this.slice(idx + Math.abs(rem));
+  };
+
+  /* smart form js starts */
+  /*function getSelectedOption(el) {
+    let selectedOption = null;
+    if (el.classList.contains('form-check-options')) {
+      const inputs = el.querySelectorAll('input.form-check-input');
+      for (let i = 0; i < inputs.length; i++) {
+        if (inputs[i].checked) {
+          selectedOption = inputs[i].value;
+          break;
+        }
+      }
+    } else {
+      selectedOption = el.options[el.selectedIndex].value;
+    }
+    return selectedOption;
+  }*/
+
+  function getInputValues(inputs) {
+    const selectedValues = [];
+    for (let i = 0; i < inputs.length; i++) {
+      if (inputs[i].checked) {
+        selectedValues.push(inputs[i].value);
+      }
+    }
+    return selectedValues;
+  }
+
+  function getSelectedOptions(el) {
+    if (el.classList.contains('form-check-options')) {
+      const inputs = el.querySelectorAll('input.form-check-input');
+      return getInputValues(inputs);
+    } else if (el.classList.contains('form-check-box')) {
+      const inputs = el.querySelectorAll('input.form-check-box');
+      return getInputValues(inputs)
+    } /*else {
+      selectedOptions.push(el.options[el.selectedIndex].value);
+    }*/
+    return [];
+  }
+
+  const conditionsAreMet = function (elem) {
+    let conditionsSatisfied = true;
+    for (let i = 0; i < elem.classList.length; i++) {
+      const cls = elem.classList[i];
+      if (cls.startsWith('if_')) {
+        const condition = cls.split('if_')[1];
+        const conditionVal = condition.split('__')[1];
+        let conditionId = 'id_' + condition.split('__')[0];
+        let conditionEl = document.getElementById(conditionId);
+        if (!conditionEl) {
+          // the condition also depends on another condition
+          conditionId = 'id_if_' + condition.split('__')[0];
+          conditionEl = document.getElementById(conditionId);
+        }
+        if (!conditionEl) {
+          continue;
+        }
+        const selectedOptions = getSelectedOptions(conditionEl);
+        if (!selectedOptions.includes(conditionVal)) {
+          conditionsSatisfied = false;
+          break;
+        }
+      }
+    }
+    return conditionsSatisfied;
+  }
+
+  const setElemVisibility = function (elem, conditionsMet) {
+    if (conditionsMet) {
+      $(elem).closest('.form-group').removeClass('d-none');
+    } else {
+      $(elem).closest('.form-group').addClass('d-none');
+    }
+  }
+
+  const setVisibility = function (elems) {
+    for (let i = 0; i < elems.length; i++) {
+      const conditionsMet = conditionsAreMet(elems[i]);
+      setElemVisibility(elems[i], conditionsMet);
+    }
+  };
+
+  const elems = document.querySelectorAll('*[id^="id_if_"]');
+  // Initialization
+  setVisibility(elems);
+
+  // Setup onchange
+  const conditions = [];
+  for (let i = 0; i < elems.length; i++) {
+    for (let j = 0; j < elems[i].classList.length; j++) {
+      const cls = elems[i].classList[j];
+      if (cls.startsWith('if_') && !conditions.includes(cls)) conditions.push(cls);
+    }
+  }
+  //console.log(conditions);
+  for (let i = 0; i < conditions.length; i++) {
+    const condition = conditions[i].split('if_')[1];
+    let conditionId = 'id_' + condition.split('__')[0];
+    let conditionEl = document.getElementById(conditionId);
+    if (!conditionEl) {
+      conditionId = 'id_if_' + condition.split('__')[0];
+      conditionEl = document.getElementById(conditionId);
+    }
+    if (!conditionEl) continue;
+    conditionEl.onchange = function () {
+      setVisibility(elems);
+    };
+  }
+  /* smart form js ends */
+
+  /*
+  window.onbeforeunload = function () {
+    const data = {'user': DH_USER, 'post': DH_POST, 'event': 'AP(unload)', 'timestamp': new Date().getTime()};
+    sendGasEvent(data);
+  }
+  */
+
+//}());
+</script>
+{% endblock %}

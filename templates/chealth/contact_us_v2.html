@@ -1,0 +1,94 @@
+{% extends 'layout_bs5.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Contact Us{% endblock %}
+
+{% block localstyles %}
+<style>
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.app-main {
+  flex-grow: 1;
+}
+.page-bg {
+  background-color: #f1f5f8;
+}
+.app-main {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+.navbar-dark .navbar-nav .nav-link {
+  color: rgba(255, 255, 255, .95);
+}
+.footer-theme {
+  color: #fff;
+  background-color: #fe4066;
+}
+.font-weight-bold {
+  font-weight: 600;
+}
+.footer-container > .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+.footer-container hr.teal {
+  height: 2px;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+.form-submit {
+  float: right;
+}
+</style>
+{% endblock %}
+
+{% block body_class %}app page-bg{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+  <div class="row card">
+    <div class="card-header">
+      Contact Us
+    </div>
+    <div class="card-body card-scrollbar" id="container"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+  {% include 'footer_v2.html' %}
+{% endblock %}
+
+{% block localscripts %}
+<script>
+(function () {
+
+  const container = document.getElementById('container');
+  const form = new app.Form(container, {
+    fieldData: [
+      {label: 'Your Email', name: 'your_email', type: 'text', pattern: /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/},
+      {label: 'Message', name: 'message', type: 'textarea', rows: 10, autogrow: true},
+    ],
+    renderOnError: true,
+    resetOnSubmit: true,
+    showSubmitButton: true,
+    ajax: true,
+    cb: (json) => {
+      console.log(json);
+      if (form) {
+        form.destroy();
+        form.form.remove();
+        app.createEl(container, 'div', {class: 'col-12', innerHTML: 'Your message is sent.'});
+      }
+    }
+  });
+
+}());
+</script>
+{% endblock %}

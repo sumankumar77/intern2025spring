@@ -1,0 +1,212 @@
+{% load static %}
+
+<script class="view-script">
+    (function(){
+
+        $('#move-this-to-trash').on('click', function () {
+            var message_id = $('#message-id')[0].value;
+            var url = '/messages/move-to-trash/' + message_id + '/';
+            var csrftoken = getCookie('csrftoken');
+            $.ajax({
+                url: url,
+                type: 'POST',
+                headers: { 'X-CSRFToken': csrftoken },
+
+                success: function (json) {
+                    if (json.success) {
+                        window.location = '/messages/inbox/';
+                    } else {
+                        console.log(json.error);
+                    }
+                },
+
+                error: function (xhr, errmsg, err) {
+                    console.log(xhr.status + ": " + xhr.responseText);
+                }
+            });
+        });
+
+        $('#move-this-to-inbox').on('click', function () {
+            var message_id = $('#message-id')[0].value;
+            var url = '/messages/move_to_inbox/' + message_id + '/';
+            var csrftoken = getCookie('csrftoken');
+            $.ajax({
+                url: url,
+                type: 'POST',
+                headers: { 'X-CSRFToken': csrftoken },
+
+                success: function (json) {
+                    if (json.success) {
+                        window.location = '/messages/trash/';
+                    } else {
+                        console.log(json.error);
+                    }
+                },
+
+                error: function (xhr, errmsg, err) {
+                    console.log(xhr.status + ": " + xhr.responseText);
+                }
+            });
+        });
+
+        $('.message-body').each(function() {
+            var msgBody = $(this).html(),
+                msgs = msgBody.split('&lt;hr&gt;');
+
+            $(this).text('');
+            for (var i = 0; i < msgs.length; i++) {
+                if (i == 0) {
+                    var p = $('<p></p>').html(msgs[i]);
+                } else {
+                    var p = $('<p class="msg-history"></p>').html(msgs[i]);
+                }
+                $(this).append(p);
+                if (i != msgs.length - 1) {
+                    $(this).append($('<hr class="msg-history">'));
+                }
+            }
+            $('.msg-history').hide();
+            if ( !$('.msg-history').length )
+                $('.expand-msg').hide();
+        });
+
+        $('.msg-full-view .message-content-col').each(function() {
+            var msgBody = $(this).html(),
+                msgs = msgBody.split('&lt;hr&gt;'),
+                msg_short_view = $('.msg-short-view', $(this).closest('.block-container'));
+
+            $(this).text('');
+            for (var i = 0; i < msgs.length; i++) {
+                if (i == 0) {
+                    var p = $('<p></p>').html(msgs[i]);
+                    if (msg_short_view) {
+                        if (msgs[i])
+                            msg_short_view.text(msgs[i].replace(/<br>/g, ' '))
+                        else
+                            msg_short_view.text(' ')
+                    }
+                } else {
+                    var p = $('<p class="old-msg-history"></p>').html(msgs[i]);
+                }
+                $(this).append(p);
+                if (i != msgs.length - 1) {
+                    $(this).append($('<hr class="old-msg-history">'));
+                }
+            }
+            if (msgs.length > 1) {
+                $(this).append($(`<div class="btn btn-pill btn-block btn-light my-1" style="max-width: 150px"
+                    onclick = "expandOldMsgHistory(this)" > <span class="icon-msg icon-ellipsis"></span></div >`));
+            }
+            $('.old-msg-history', $(this)).hide();
+        });
+
+        $.fn.setCursorPosition = function (pos) {
+            this.each(function (index, elem) {
+                if (elem.setSelectionRange) {
+                    elem.setSelectionRange(pos, pos);
+                } else if (elem.createTextRange) {
+                    var range = elem.createTextRange();
+                    range.collapse(true);
+                    range.moveEnd('character', pos);
+                    range.moveStart('character', pos);
+                    range.select();
+                }
+            });
+            return this;
+        };
+
+        $('#reply').click(function(){
+            $('#post-view-actions').css('display', 'none');
+            $('#reply-body').css('display', 'block');
+            $('#id_reply-body').focus().setCursorPosition(0);
+        });
+
+        $('#forward').click(function(){
+            $('#post-view-actions').css('display', 'none');
+            $('#forward-body').css('display', 'block');
+            $('#id_forward-body').focus().setCursorPosition(0);
+        });
+
+        $('#cancel-reply').click(function(){
+            $('#reply-body').css('display', 'none');
+            $('#post-view-actions').css('display', 'block');
+        });
+
+        $('#cancel-forward').click(function(){
+            $('#forward-body').css('display', 'none');
+            $('#post-view-actions').css('display', 'block');
+        });
+
+        var oldMsgs = $('.old-message'),
+            nmsg = oldMsgs.length;
+        oldMsgs.each(function (index) {
+            if (index != 0 && index != nmsg - 1) {
+                $(this).hide();
+            }
+        });
+
+        function expandOldMsg() {
+            $('.expand-old-msg').hide();
+            oldMsgs.each(function (index) {
+                if (index != 0 && index != nmsg - 1) {
+                    $(this).show();
+                }
+            });
+        }
+
+        function collapseOldMsg() {
+            $('.msg-full-view').hide();
+            $('.msg-short-view').css('visibility', 'visible');
+            oldMsgs.each(function (index) {
+                if (index != 0 && index != nmsg - 1) {
+                    $(this).hide();
+                }
+            });
+            $('.expand-old-msg').show();
+        }
+
+        function expandOldMsgBody() {
+            expandOldMsg();
+            $('.msg-short-view').css('visibility', 'hidden');
+            $('.msg-full-view').show();
+        }
+
+        function toggleOldMsgBody(element) {
+            var bcontainer = $(element).closest('.block-container');
+            if ($('.msg-short-view', bcontainer).css('visibility') == 'hidden')
+                $('.msg-short-view', bcontainer).css('visibility', 'visible');
+            else
+                $('.msg-short-view', bcontainer).css('visibility', 'hidden');
+            $('.msg-full-view', bcontainer).toggle();
+            if ($('.msg-full-view', bcontainer).css('display') == 'none') {
+                $('.old-msg-history').hide();
+                $('.message-content-col .btn.btn-pill', bcontainer).show();
+            }
+        }
+
+        function expandMsgBody() {
+            $('.expand-msg').hide();
+            $('.msg-history').show();
+        }
+
+        function toggleMsgBody() {
+            if ( $('.msg-history').length )
+                $('.expand-msg').toggle();
+            $('.msg-history').toggle();
+        }
+
+        function expandOldMsgHistory(element) {
+            $(element).hide();
+            $('.old-msg-history', $(element).parent()).show();
+        }
+
+        window.expandOldMsg = expandOldMsg;
+        window.collapseOldMsg = collapseOldMsg;
+        window.expandOldMsgBody = expandOldMsgBody;
+        window.toggleOldMsgBody = toggleOldMsgBody;
+        window.expandMsgBody = expandMsgBody;
+        window.toggleMsgBody = toggleMsgBody;
+        window.expandOldMsgHistory = expandOldMsgHistory;
+
+    })();
+</script>

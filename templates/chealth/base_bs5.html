@@ -1,0 +1,77 @@
+{% load i18n %}
+{% load static %}
+{% get_media_prefix as MEDIA_PREFIX %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'en-us' }}">
+<head>
+  <title>{% block title %}Connected Health{% endblock %}</title>
+
+  <meta charset="UTF-8"/>
+  <meta name="created" content="{% now 'jS M Y h:i' %}"/>
+  <meta name="description" content="{% block description %}{% endblock %}"/>
+  <meta name="viewport" content="{% block viewport %}width=device-width, initial-scale=1{% endblock %}"/>
+  <meta name="google-site-verification" content="w_YCiFNTFUlln9UmfkJx2K8E7ib9CCgDm62bW3Qe90M"/>
+  {% block extraheaders %}{% endblock %}
+  {% block localheaders %}{% endblock %}
+  {% block favicon %}
+    <link rel="icon" href="{% static 'main/favicon-v2.ico' %}"/>
+  {% endblock %}
+
+  {% block styles %}
+    <!--<link href="https://fonts.googleapis.com/css?family=Manrope" rel="stylesheet"/>-->
+    <!--<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />-->
+    <link rel="preload" href="{% static 'fonts/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2' %}" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="{% static 'fonts/materialicons/v151/kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2' %}" as="font" type="font/woff2" crossorigin="anonymous">
+    <style>
+    @font-face {
+      font-family: 'Material Symbols Outlined';
+      font-style: normal;
+      font-weight: 100 700;
+      src: url({% static 'fonts/materialicons/v151/kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2' %}) format('woff2');
+    }
+    @font-face {
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 400;
+      src: url({% static 'fonts/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2' %}) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    </style>
+    <link href="{% static 'css/bootstrap-5.0.2/bootstrap.min.css' %}" rel="stylesheet" type="text/css">
+    <link href="{% static 'css/v2/app-53b344443bb.min.css' %}" rel="stylesheet" type="text/css">
+  {% endblock %}
+
+  {% block extrastyles %}{% endblock %}
+
+  {% block localstyles %}{% endblock %}
+
+  {% block tracking %}{% endblock %}
+</head>
+
+<body class="{% block body_class %}{% endblock %}">
+
+  {% block layout %}
+    {% block navbar %}{% endblock %}
+    {% block alerts %}{% endblock %}
+    {% block sidebar %}{% endblock %}
+    {% block content %}{% endblock %}
+    {% block footer %}{% endblock %}
+    {% block overlay %}{% endblock %}
+  {% endblock %}
+
+  {% block cdnscripts %}{% endblock %}
+
+  {% block scripts %}
+  <script type="text/javascript" src="{% static 'js/bootstrap-5.0.2/bootstrap.bundle.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/v2/main-419dd3f94fa.min.js' %}"></script>
+  {% endblock %}
+
+  {% block extrascripts %}{% endblock %}
+
+  {% block localscripts %}{% endblock %}
+
+  {% block appscripts %}{% endblock %}
+
+</body>
+
+</html>

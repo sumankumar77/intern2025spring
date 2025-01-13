@@ -1,0 +1,11 @@
+{% load custom_tags %}
+<div class="slider-wrapper d-flex">
+  <div class="range-slider">
+    <input type="range" name="{{ widget.name }}" id="id_{{ widget.name }}" {% if 'min' in widget.attrs %}min="{{ widget.attrs|get_item:'min' }}" value="{{ widget.attrs|get_item:'min' }}"{% endif %} {% if 'max' in widget.attrs %}max="{{ widget.attrs|get_item:'max' }}"{% endif %} style="height: 2px;">
+    <div class="track-wrapper" style="height: 2px;">
+      <div class="track" style="background-color: rgb(68, 113, 239);"></div>
+      <div class="range-between" style="background-color: rgb(68, 113, 239); left: 0%;"></div>
+      <div class="thumb left" style="left: 0%;"></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,380 @@
+{% extends 'green_diabetes_waste/layout.html' %}
+{% load i18n %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+{% block title %}{{ form_title|title }}{% endblock %}
+
+{% block localstyles %}
+<style>
+.form-all {
+  width: 992px;
+  margin: 0 auto;
+  background-color: #f1f1f1;
+}
+.form-label-left,
+.form-label-right,
+.form-label-left.form-label-auto,
+.form-label-right.form-label-auto {
+  width: 350px;
+}
+@media (max-width: 1020px) {
+  .form-all {
+    margin: 0;
+    width: 100%;
+  }
+}
+.form-line {
+  margin: 0;
+  padding: 12px 36px;
+  clear: both;
+  display: block;
+  position: relative;
+}
+.form-line-error {
+  overflow: hidden;
+  -webkit-transition-property: none;
+  -moz-transition-property: none;
+  -ms-transition-property: none;
+  -o-transition-property: none;
+  transition-property: none;
+  -webkit-transition-duration: 0.3s;
+  -moz-transition-duration: 0.3s;
+  -ms-transition-duration: 0.3s;
+  -o-transition-duration: 0.3s;
+  transition-duration: 0.3s;
+  -webkit-transition-timing-function: ease;
+  -moz-transition-timing-function: ease;
+  -ms-transition-timing-function: ease;
+  -o-transition-timing-function: ease;
+  transition-timing-function: ease;
+  background-color: #fff4f4;
+}
+
+.form-label.form-label-auto {
+  display: inline-block;
+  float: left;
+  text-align: left;
+}
+
+.form-label-left, .form-label-right {
+  margin-bottom: 9px;
+  padding: 3px;
+  word-break: break-word;
+}
+
+.form-label-middle {
+  padding-top: 10px;
+  vertical-align: top;
+}
+
+.form-label {
+  color: #000;
+  font-family: Helvetica, sans-serif;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.form-label-left + .form-input {
+  display: inline-block;
+}
+.form-line.section-title {
+  padding-top: 12px!important;
+  padding-bottom: 10px;
+  background-color: rgba(13, 110, 253, 0.25);
+}
+.form-line.section-title + .form-line {
+  padding-top: 12px!important;
+}
+.form-line + .form-line.as-part {
+  padding-top: 0!important;
+}
+.form-line.last-part, .form-line.btm-line {
+  border-bottom: 2px solid #5c5c5e;
+  padding-bottom: 24px!important;
+}
+.section-title-1, .section-title-2 {
+  font-size: 1.5rem;
+  margin-bottom: 0;
+}
+
+.section-title-3 {
+  font-size: 1.2rem;
+  margin-bottom: 0;
+}
+
+.form-input {
+  vertical-align: top;
+  padding-top: 3px;
+}
+
+.form-required {
+  margin-left: 3px;
+  color: #f00;
+  vertical-align: sub;
+}
+
+/*.form-input-wide {
+    padding-bottom: 12px;
+}*/
+.form-header-group {
+  background-color: #333;
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.form-header-text {
+  color: #12a7ff;
+  font-size: 1.25em;
+  font-weight: 500;
+}
+
+.form-sub-header {
+  margin: 0;
+  padding: 12px 36px;
+  clear: both;
+  display: block;
+  position: relative;
+  background-color: #666;
+}
+
+.form-user {
+  padding: 0px 5px 12px 5px;
+  text-align: center;
+}
+
+small.form-text p {
+  margin-bottom: 0.15rem;
+}
+
+ul.form-multi-select {
+  position: relative;
+  display: block;
+  padding-left: 1.875rem;
+}
+
+ul.form-multi-select li label input[type="checkbox"] {
+  font-family: 'Material Icons';
+  content: "";
+  display: inline-block;
+  visibility: visible;
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  left: 0;
+  border: 2px solid #757575;
+  border-radius: 2px;
+}
+
+input[type="checkbox"].inline-checkbox-left,
+input[type="checkbox"].inline-checkbox-right{
+  font-family: 'Material Icons';
+  content: "";
+  display: inline-block;
+  visibility: visible;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #757575;
+  border-radius: 2px;
+}
+
+.form-input .is-invalid ~ .invalid-feedback {
+  display: block;
+}
+
+.form-input label input[type="radio"], .form-input label input[type="checkbox"] {
+  vertical-align: -2px;
+}
+
+.form-history {
+  align-items: center;
+  color: #000;
+  box-sizing: border-box;
+}
+
+.form-edit-history {
+  background-color: #ffff99;
+  padding: 5px;
+}
+
+form .form-line {
+  padding-top: 24px !important;
+}
+
+#save-form {
+  position: fixed;
+  top: 80px;
+  left: 20px;
+  opacity: 0.75;
+}
+.form-line.form-card-one {
+  margin: 1rem;
+  padding: 12px 24px;
+  border-radius: 0.5rem;
+  background-color: rgba(153, 237, 195, 0.3)
+}
+.form-line.form-card-top {
+  padding: 12px 24px 15px 24px!important;
+  margin: 1rem 1rem 0 1rem;
+  border-radius: .5rem .5rem 0 0;
+  background-color: rgba(137, 207, 240, 0.3)
+}
+.form-line.form-card-top.ap-goal {
+    padding: 12px 24px 15px 24px!important;
+    margin: 1rem 1rem 0 1rem;
+    border-radius: .5rem .5rem 0 0;
+    background-color: rgba(153, 237, 195, 0.3);
+}
+.form-line.form-card-mid {
+  padding: 0 24px 15px 24px!important;
+  margin: 0 1rem 0 1rem;
+  border-radius: 0;
+  background-color: rgba(137, 207, 240, 0.3)
+}
+.form-line.form-card-bottom {
+  padding: 0 24px 12px 24px!important;
+  margin: 0 1rem 1rem 1rem;
+  border-radius: 0 0 .5rem .5rem;
+  background-color: rgba(137, 207, 240, 0.3)
+}
+.info-card {
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+.info-card hr {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.readonly-form {
+  font-size: 14px
+}
+.gallery-image {
+  max-width: 100%
+}
+</style>
+{% endblock %}
+
+{% block main_class %}app-body{% endblock %}
+{% block content %}
+<div class="content-wrapper">
+  <div class="content">
+    <div class="row">
+      <div class="col-sm">
+        <div class="card card-shadow form-all">
+          <div class="card-body" style="padding: 0">
+            <div class="form-input-wide">
+              <div class="form-header-group">
+                <div class="form-header-text">
+                  {{ form_title|title }}
+                </div>
+              </div>
+            </div>
+
+            <div class="card info-card">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-6">
+                    <div class="row">
+                      <div class="col-sm-4">
+                        <p class="mb-0">Username</p>
+                      </div>
+                      <div class="col-sm-8">
+                        <p class="text-muted mb-0">{{ study_user.username }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="row">
+                      <div class="col-sm-4">
+                        <p class="mb-0">Study ID</p>
+                      </div>
+                      <div class="col-sm-8">
+                        <p class="text-muted mb-0">{% if study_user.human_subject %}{{ study_user.human_subject }}{% else %}N/A{% endif %}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <hr>
+                <div class="row">
+                  <div class="col-6">
+                    <div class="row">
+                      <div class="col-sm-4">
+                        <p class="mb-0">Email</p>
+                      </div>
+                      <div class="col-sm-8">
+                        <p class="text-muted mb-0">{% if study_user.email %}{{ study_user.email }}{% else %}N/A{% endif %}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="row">
+                      <div class="col-sm-4">
+                        <p class="mb-0">Phone</p>
+                      </div>
+                      <div class="col-sm-8">
+                        <p class="text-muted mb-0">{% if study_user.phone %}{{ study_user.phone }}{% else %}N/A{% endif %}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <hr>
+                <div class="row">
+                  <div class="col-6">
+                    <div class="row">
+                      <div class="col-sm-4">
+                        <p class="mb-0">Start Date</p>
+                      </div>
+                      <div class="col-sm-8">
+                        <p class="text-muted mb-0">{% if study_user.start_date %}{{ study_user.start_date|date:'m/d/Y' }}{% else %}N/A{% endif %}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="row">
+                      <div class="col-sm-4">
+                        <p class="mb-0">End Date</p>
+                      </div>
+                      <div class="col-sm-8">
+                        <p class="text-muted mb-0">{% if study_user.end_date %}{{ study_user.end_date|date:'m/d/Y' }}{% else %}N/A{% endif %}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <hr>
+                <div class="row">
+                  <div class="col-6">
+                    <div class="row">
+                      <div class="col-sm-4">
+                        <p class="mb-0">Request Date</p>
+                      </div>
+                      <div class="col-sm-8">
+                        <p class="text-muted mb-0">{{ token.date|date:'m/d/Y' }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="row">
+              {% for uploaded_image in token.uploadedimage_set.all %}
+              <div class="col-md-6">
+                <img class="gallery-image" src="{{ uploaded_image.image.url }}" alt="uploaded_image.image.name">
+              </div>
+              {% endfor %}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block localscripts %}
+{{ form.media }}
+{% endblock %}

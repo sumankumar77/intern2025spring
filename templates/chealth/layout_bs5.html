@@ -1,0 +1,81 @@
+{% extends 'base_bs5.html' %}
+{% load static %}
+
+{% block title %}Digital Health{% endblock %}
+
+{% block body_class %}navbar-fixed navbar-md{% endblock %}
+
+{% block layout %}
+
+  {% block navbar %}
+    {% include 'navbar_bs5.html' %}
+  {% endblock %}
+
+  {% block alerts %}{% endblock %}
+
+  {% block sidebar %}{% endblock %}
+
+  <main class="{% block main_class %}app-main{% endblock %}">
+  {% block main %}{% endblock %}
+  </main>
+
+  {% block footer %}{% endblock %}
+
+  {% block overlay %}{% endblock %}
+
+{% endblock %}
+
+{% block appscripts %}
+<script class="view-script" type="text/javascript">
+(function () {
+
+  /* Navbar menu full dropdown */
+  document.querySelectorAll('.navbar .nav-menu.navbar-full-dropdown .nav-item.dropdown > *[data-bs-toggle="dropdown"]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('show')) {
+        e.target.closest('.navbar').classList.remove('active');
+      } else {
+        e.target.closest('.navbar').classList.add('active');
+      }
+    });
+  });
+
+  window.addEventListener('click', (e) => {
+    if(document.querySelectorAll('.navbar .nav-menu.navbar-full-dropdown .nav-item.dropdown .show').length === 0) {
+      const navbar = document.querySelector('.navbar');
+      if (!!navbar) {
+        navbar.classList.remove('active');
+      }
+    }
+  });
+
+
+  /* Navbar overlay menu */
+  const btnOpenNavbarOverlay = document.getElementById('btn-open-navbar-overlay');
+  const btnCloseNavbarOverlay = document.getElementById('btn-close-navbar-overlay');
+  const navbarOverlay = document.getElementById('navbar-overlay');
+  if (!!btnOpenNavbarOverlay) {
+    btnOpenNavbarOverlay.addEventListener('click', () => {
+      if (!!navbarOverlay) {
+        navbarOverlay.classList.add('active');
+      }
+    });
+  }
+  if (!!btnCloseNavbarOverlay) {
+    btnCloseNavbarOverlay.addEventListener('click', () => {
+      if (!!navbarOverlay) {
+        navbarOverlay.classList.remove('active');
+      }
+    });
+  }
+
+  // Bootstrap 5 tooltips
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+  });
+
+})();
+</script>
+{% endblock %}
+

@@ -1,0 +1,188 @@
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+<div class="container-fluid px-1">
+
+    <div class="header">
+        <ul class="menu-left">
+            <li class="menu-item">
+                <strong>{{ message.subject }}</strong>
+            </li>
+        </ul>
+        <ul class="menu-right">
+            <li class="menu-item">
+                <span class="icon-msg icon-compress" onclick="collapseOldMsg()"></span>
+            </li>
+            <li class="menu-item">
+                <span class="icon-msg icon-expand" onclick="expandOldMsgBody()"></span>
+            </li>
+        </ul>
+    </div>
+
+    <!-- parent messages -->
+    {% for parent_msg in parent_msg_list %}
+        {% if parent_msg.sender == user %}
+            <div class="block-container b-t-1 old-message user-msg-bg">
+                <div class="flex-container px-0">
+                    <div class="message-content-col text-truncate msg-toggle" onclick="toggleOldMsgBody(this)">
+                        <div class="pt-3">
+                            <div class="d-inline-block">
+                                <div>
+                                    From: <strong>{{ parent_msg.sender.username }}</strong>
+                                </div>
+                            </div>
+                            <div class="d-inline-block float-right">
+                                <div class="d-inline-block">
+                                    {{ parent_msg.sent_at|date:_("DATETIME_FORMAT") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pb-3">
+                            <div class="msg-short-view"></div>
+                        </div>
+                    </div>
+                    <div class="message-sender-col ml-3">
+                        <div class="img-frame pt-3">
+                            {% if parent_msg.sender.userprofile.image %}
+                            <img src="{{ parent_msg.sender.userprofile.image.url }}" class="img-circle" style="width:46px">
+                            {% else %}
+                            <img src="{% static 'main/avatar_1x.png' %}" class="img-circle" style="width:46px">
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-container px-0 msg-full-view">
+                    <div class="message-content-col pb-3">
+                        {{ parent_msg.body|linebreaksbr }}
+                    </div>
+                    <div class="message-sender-col ml-3"></div>
+                </div>
+            </div>
+        {% else %}
+            <div class="block-container b-t-1 old-message">
+                <div class="flex-container px-0">
+                    <div class="message-sender-col mr-3">
+                        <div class="img-frame pt-3">
+                            {% if parent_msg.sender.userprofile.image %}
+                            <img src="{{ parent_msg.sender.userprofile.image.url }}" class="img-circle" style="width:46px">
+                            {% else %}
+                            <img src="{% static 'main/avatar_1x.png' %}" class="img-circle" style="width:46px">
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="message-content-col text-truncate msg-toggle" onclick="toggleOldMsgBody(this)">
+                        <div class="pt-3">
+                            <div class="d-inline-block">
+                                <div>
+                                    From: <strong>{{ parent_msg.sender.username }}</strong>
+                                </div>
+                            </div>
+                            <div class="d-inline-block float-right">
+                                <div class="d-inline-block">
+                                    {{ parent_msg.sent_at|date:_("DATETIME_FORMAT") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pb-3">
+                            <div class="msg-short-view"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-container px-0 msg-full-view">
+                    <div class="message-sender-col mr-3"></div>
+                    <div class="message-content-col pb-3">
+                        {{ parent_msg.body|linebreaksbr }}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        {% if forloop.counter == 2 and not forloop.last %}
+            <div class="block-container b-t-1 expand-old-msg">
+                <div class="row">
+                    <div class="col-2 mx-auto">
+                        <div class="btn btn-pill btn-block btn-light my-1" onclick="expandOldMsg()">
+                            <span class="icon-msg icon-ellipsis"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    <!-- this message -->
+    <div class="block-container b-t-1 b-b-1">
+        <div class="flex-container px-0">
+            {% if message.sender == user %}
+            <div class="message-info" onclick="toggleMsgBody()">
+                <div class="pt-3">
+                    <div class="d-inline-block">
+                        <div>
+                            From: <strong>{{ sender }}</strong>
+                        </div>
+                    </div>
+                    <div class="d-inline-block float-right">
+                        <div class="d-inline-block">
+                            {{ message.sent_at|date:_("DATETIME_FORMAT") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="pb-3">
+                    <div>To: {{ message.recipient.username }}</div>
+                </div>
+            </div>
+            <div class="fw-img mr-3">
+                <div class="img-frame">
+                    {% if message.sender.userprofile.image %}
+                    <img src="{{ message.sender.userprofile.image.url }}" class="img-circle" style="width:46px">
+                    {% else %}
+                    <img src="{% static 'main/avatar_1x.png' %}" class="img-circle" style="width:46px">
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="fw-img mr-3">
+                <div class="img-frame">
+                    {% if message.sender.userprofile.image %}
+                    <img src="{{ message.sender.userprofile.image.url }}" class="img-circle" style="width:46px">
+                    {% else %}
+                    <img src="{% static 'main/avatar_1x.png' %}" class="img-circle" style="width:46px">
+                    {% endif %}
+                </div>
+            </div>
+            <div class="message-info" onclick="toggleMsgBody()">
+                <div class="pt-3">
+                    <div class="d-inline-block">
+                        <div>
+                            From: <strong>{{ sender }}</strong>
+                        </div>
+                    </div>
+                    <div class="d-inline-block float-right">
+                        <div class="d-inline-block">
+                            {{ message.sent_at|date:_("DATETIME_FORMAT") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="pb-3">
+                    <div>To: me</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="flex-container px-0">
+            <div class="fw-img mr-3"></div>
+            <div class="message-body pb-3">
+                {% autoescape off %}
+                {{ message.body|linebreaksbr }}
+                {% endautoescape %}
+            </div>
+        </div>
+        <div class="flex-container px-0 expand-msg">
+            <div class="col-2 mx-auto">
+                <div class="btn btn-pill btn-block btn-light my-1" onclick="expandMsgBody()">
+                    <span class="icon-msg icon-ellipsis"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

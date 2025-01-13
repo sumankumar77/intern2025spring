@@ -1,0 +1,27 @@
+{% load i18n %}
+{% load static %}
+<footer class="page-footer bg-white pt-3 font-small" style="width: 100%">
+
+  <div class="footer-bar theme-fsu">
+    <div class="row py-3 d-flex align-items-center">
+      <div class="col-md-6 col-lg-5 text-center text-md-left mb-md-0">
+        <h6 class="mb-0">The Digital Health Platform</h6>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-container text-center text-md-left mt-3">
+    <div class="row mt-2 dark-grey-text">
+      <div class="col-md-2 col-sm-3 col-4 mb-2 ml-auto">
+        <img class="footer-img" src="{% static 'main/fsu-con.png' %}" alt="fsu-con">
+      </div>
+      <div class="col-md-4 col-sm-6 col-8 mb-2 mr-auto">
+        <img class="footer-img" src="{% static 'main/dts-green.png' %}" alt="fsu-con">
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-copyright text-center text-black-50 py-3">© 2018-{% now "Y" %} Copyright: DigitalHealth@FSU</a>
+  </div>
+
+</footer>

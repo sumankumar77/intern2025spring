@@ -1,0 +1,14 @@
+<div class="custom-file">
+    <input type="file" class="custom-file-input" id="{{ widget.custom_file_id }}"
+           {% include "django/forms/widgets/attrs.html" %}>
+    <label class="custom-file-label" for="{{ widget.custom_file_id }}">Choose file</label>
+</div>
+
+<script type="text/javascript">
+    var input_{{ widget.custom_file_id }} = document.getElementById('{{ widget.custom_file_id }}');
+    input_{{ widget.custom_file_id }}.addEventListener('change', function (e) {
+        var fileName = input_{{ widget.custom_file_id }}.files[0].name;
+        var nextSibling = e.target.nextElementSibling;
+        nextSibling.innerText = fileName;
+    });
+</script>

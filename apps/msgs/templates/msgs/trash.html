@@ -1,0 +1,30 @@
+{% extends 'layout.html' %}
+{% load i18n %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+{% block title %}Trash{% endblock %}
+
+{% block content %}
+<div class="main" id="main">
+    <ol class="statusbar">
+        <li class="statusbar-item">
+            <div class="d-table h-100">
+                <div class="d-table-cell align-middle">
+                    <strong>Trash</strong>
+                </div>
+            </div>
+        </li>
+    </ol>
+    <div class="inbox-body" id="inbox-body">
+        {% include 'msgs/messages_options.html' %}
+        {% include 'msgs/messages.html' %}
+    </div>
+</div>
+{% endblock %}
+
+
+{% block localscripts %}
+{% include 'msgs/messages_scripts.html' %}
+{% endblock %}

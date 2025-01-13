@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Email Invalid{% endblock %}
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block content_class %}block-content mt-navbar theme-07{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row pt-4">
+        <div class="col-12">
+            <div class="row mw-500 mx-auto card theme-00">
+                <div class="card-header mb-2 theme-00">
+                    <div class="text-center user-header">Invalid link</div>
+                </div>
+                <div class="col-12 mb-2 text-white">
+                    The link is invalid. Please <a href="{% url 'resend_activation_email' %}">resend a confirmation email</a>.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

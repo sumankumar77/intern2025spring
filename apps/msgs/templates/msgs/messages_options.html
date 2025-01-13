@@ -1,0 +1,70 @@
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+<div class="mail-option mt-0">
+
+    <div class="chk-all pr-0">
+        <input type="checkbox" id="chk-all" class="mail-checkbox mail-group-checkbox">
+        <div class="btn-group">
+            <div class="btn mini all ll-dropdown-button pl-0 pr-1" data-toggle="dropdown">
+                All <span class="icon-xs ic-angle-down ll-dropdown-button ll-dropdown-arrow-down"></span>
+            </div>
+            <ul class="dropdown-menu left-adjust">
+                <li class="dropdown-item">
+                    <input type="checkbox" id="chk-all-read" class="mr-2"> Read
+                </li>
+                <li class="dropdown-item">
+                    <input type="checkbox" id="chk-all-unread" class="mr-2"> Unread
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="btn-group px-0">
+        <button data-original-title="Refresh" data-placement="top" class="btn mini tooltips px-2" style="background-color: #fcfcfc" onclick="refreshPage()">
+            <span class="icon-sm-plain ic-refresh"></span>
+        </button>
+    </div>
+
+    <div class="btn-group dropdown px-0">
+        <button class="btn mini blue ll-dropdown-button px-2" data-toggle="dropdown" aria-expanded="false">
+            Delete
+            <span class="icon-xs ic-angle-down ll-dropdown-button ll-dropdown-arrow-down"></span>
+        </button>
+        <ul class="dropdown-menu">
+            <li class="dropdown-item">
+                {% if title == 'inbox' %}
+                <div role="button" id="move-to-trash">
+                    <span class="icon-sm ic-trash mr-2"></span> Delete Permanently
+                </div>
+                {% else %}
+                <div role="button" id="move-to-inbox">
+                    <span class="icon-sm ic-envelope mr-2"></span> Inbox
+                </div>
+                {% endif %}
+            </li>
+        </ul>
+    </div>
+
+    <div class="inbox-pagination" id="inbox-pagination">
+        <ul class="inbox-pagination-content" id="inbox-pagination-content">
+            <li><span class="page-info">{{ messages.start_index }}-{{ messages.end_index }} of {{ntotal}}</span></li>
+            {% if messages.has_previous %}
+            <li><a class="np-btn px-2" href="{% url 'messages_inbox' %}?page={{ messages.previous_page_number }}"
+                   id="inbox-prev"><div class="icon-xs ic-angle-left pagination-left"></div></a></li>
+            {% else %}
+            <li class="disabled"><a class="np-btn px-2" href="#" id="inbox-prev">
+                <div class="icon-xs ic-angle-left pagination-left"></div></a></li>
+            {% endif %}
+            {% if messages.has_next %}
+            <li><a class="np-btn px-2" href="{% url 'messages_inbox' %}?page={{ messages.next_page_number }}"
+                   id="inbox-next"><div class="icon-xs ic-angle-right pagination-right"></div></a></li>
+            {% else %}
+            <li class="disabled"><a class="np-btn px-2" href="#" id="inbox-next">
+                <div class="icon-xs ic-angle-right pagination-right"></div></a></li>
+            {% endif %}
+        </ul>
+    </div>
+
+</div>

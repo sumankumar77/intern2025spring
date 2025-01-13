@@ -1,0 +1,266 @@
+{% extends 'layout_bs5.html' %}
+{% load static %}
+
+{% block title %}Privacy Policy{% endblock %}
+
+{% block localstyles %}
+<style>
+.navbar-dark .navbar-nav .nav-link {
+  color: rgba(255, 255, 255, .95);
+}
+main.app-main {
+  padding: 0;
+}
+.image-full-width {
+  width: 100%;
+  height: auto;
+}
+.footer-theme {
+  color: #fff;
+  background-color: #fe4066;
+}
+.font-weight-bold {
+  font-weight: 600;
+}
+.footer-container > .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+.footer-container hr.teal {
+  height: 2px;
+}
+
+.container-mw {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 30px;
+  padding-right: 30px;
+}
+.smain {
+  background: #fff;
+  padding: 1px 10px 40px;
+  letter-spacing: 0.03125rem;
+  line-height: 1.75;
+}
+.sidebar-right {
+  display: none;
+}
+@media screen and (min-width: 768px) {
+  .smain {
+    min-height: 800px;
+    border: none;
+    margin: 0;
+    padding-bottom: 80px;
+    padding-left: 3%;
+    padding-right: 3%;
+    width: 65%;
+    float: left
+  }
+  .sidebar-right {
+    display: block;
+    position: relative;
+    float: right;
+    width: 35%;
+  }
+}
+.smain p {
+  margin-top: 10px;
+}
+.sticky-content {
+  margin-left: 4%;
+  position: absolute;
+  /*top: 150px;*/
+  top: 0;
+  padding-top: 50px;
+  overflow-x: hidden;
+  direction: ltr;
+}
+
+.ptop-navbar {
+  padding-top: 65px !important;
+}
+</style>
+{% endblock %}
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block main %}
+  <div class="container-fluid mt-navbar home">
+    <div class="row flex-xl-nowrap">
+      <div class="container-mw">
+        <div class="smain">
+          <h3 id="introduction" class="ptop-navbar">
+            DIGITALHEALTH PRIVACY POLICY
+          </h3>
+          <p>
+            DigitalHealth is a platform (the “Service”) that aims to aggregate users’ health data from
+            smart devices and to enable users and researchers to have a comprehensive picture of a user’s
+            health condition. DigitalHealth takes seriously its obligation to protect the privacy of
+            every individual. This Privacy Policy is to inform you (“you” means the users of the Service)
+            about what information DigitalHealth collects, how your personal information is protected
+            in database and transit and how this information is used.
+          </p>
+          <h4 id="personal-information" class="ptop-navbar">
+            What Information is collected and how it is used?
+          </h4>
+          <h4>
+            Personal Information
+          </h4>
+          <p>
+            When you create a DigitalHealth account for the Service, we will collect the username, a valid email address
+            and password from you. The username is a unique name on DigitalHealth to identify a user. The email address
+            is used to activate your account or reset your password. To connect DigitalHealth account to other service
+            accounts for aggregating health data, you will also be asked to provide your usernames and passwords of
+            those services. For example, if you connect your Fitbit account to enable the Service to collect your Fitbit
+            data, you will be asked to provide your Fitbit account username/email and password. Please note that these
+            usernames and passwords are not stored or retained in DigitalHealth servers. This information is only used
+            for creating secure credentialing mechanisms to exchange data between DigitalHealth Service and other
+            services at the time of connection.
+          </p>
+          <p>
+            DigitalHealth may also collect your connection information, such as your IP address, browser information,
+            date, time, and duration of your connection, navigated pages, and performed actions. This information will
+            only be used to improve our Service. We may also store cookies on your computer to improve and/or enhance
+            the browsing experience. Declining cookies may affect your internet browsing experience.
+          </p>
+          <h4>
+            Anonymous Information
+          </h4>
+          <p>
+            “Anonymous Information” is information that can not be used to identify an individual user. This includes
+            aggregated information about the users and the Service. Anonymous Information is also used only to provide
+            better service for the users. Anonymous Information of users who participate in research studies may also be
+            disclosed in research abstract, paper, conference, etc., with the consent of participants. For all research
+            studies conducted on DigitalHealth, researchers are required to obtain an IRB approval. DigitalHealth makes
+            its best effort to comply the Health Insurance Portability and Accountability Act (HIPAA).
+          </p>
+          <p>
+            DigitalHealth may also share Anonymous Information with the third parties that provide services to the
+            platform. The use of this Anonymous Information by the third parties are determined by their privacy policy.
+          </p>
+          <h4 id="protect-personal-information" class="ptop-navbar">
+            How do we protect your Personal Information?
+          </h4>
+          <p>
+            Your privacy is paramount to us. We employ various administrative, technical and physical safeguards to
+            protect privacy of every users and confidentiality of user health information. For instance, DigitalHealth
+            enforces a strong password by providing password strength score when a user registers an account. We prevent
+            brutal force attack of accounts by locking out the account for a specific amount of time. In addition, your
+            account will be logged out if it is inactive for 10 minutes.
+          </p>
+          <p>
+            All sensitive data is encrypted before saving to database so that database administrators and intruders
+            won’t be able to see it. We also use Transport Layer Security (TLS, successor protocol to SSL, Secure
+            Sockets Layer) certificate technology to protect data exchange between us and other services and between us
+            and users. Data transfer with TLS protocol are strongly encrypted and information can only be decrypted and
+            visible between the two with connection. The URL under TLS protocol starts with https rather than http. By
+            default, all http requests to DigitalHealth will be redirected to https. It is recommended that you use a
+            modern browser so that it informs you a secure connection.
+          </p>
+          <h4 id="share-personal-information" class="ptop-navbar">
+            Sharing your Personal Information with others
+          </h4>
+          <p>
+            All users on the platform have equal privileges. Each user can request permission to view other users’
+            health data or authorize users to view your health data. The consent is made between the two accounts
+            involved. This consent is inevitable for all users regardless of their participant in research study with a
+            signed consent form. By sharing Personal Information with other users, you by default understand the risk
+            and agree to take your own responsibility to the confidentiality between you and the user you share with.
+          </p>
+          <h4 id="account-close" class="ptop-navbar">
+            Account termination
+          </h4>
+          <p>
+            You can choose to close your Service account at any time by sending a request to us. Upon the request, all
+            your Personal Information will be deleted permanently on the server. This does not include the data obtained
+            by the researchers. Research participants need to refer to the consent form from the research for the life
+            cycle of Personal Information. By closing your Service account, the connection between DigitalHealth and
+            your other service accounts are automatically terminated. Please note that your accounts with other services
+            are not affected by this.
+          </p>
+          <h4 id="amendments" class="ptop-navbar">
+            Amendments to this Privacy Policy
+          </h4>
+          <p>
+            DigitalHealth may make changes to this Privacy Policy from time to time. Service users will be notified by
+            their registered email address if there is an update of Privacy Policy.
+          </p>
+          <h4 id="questions-and-concerns" class="ptop-navbar">
+            Questions and concerns
+          </h4>
+          <p>
+            If you have any questions regarding this Privacy Policy or concerns about our use, disclosure or
+            handling of your Personal Information, please <a href="{% url 'contact_us' %}">contact us</a>, with
+            'Privacy Policy' in the subject.
+          </p>
+        </div>
+        <div class="sidebar-right">
+          <div class="sticky-content">
+            <h5 style="margin-left: .75rem;">Contents</h5>
+            <ul>
+              <li class="mt-3">
+                <a href="#introduction">Privacy Policy</a>
+              </li>
+              <li class="mt-3">
+                <a href="#personal-information">Personal Information</a>
+              </li>
+              <li class="mt-3">
+                <a href="#protect-personal-information">How we protect the security of your
+                  Personal Information</a>
+              </li>
+              <li class="mt-3">
+                <a href="#share-personal-information">Sharing your Personal Information with others</a>
+              </li>
+              <li class="mt-3">
+                <a href="#account-close">Account termination</a>
+              </li>
+              <li class="mt-3">
+                <a href="#amendments">Amendments to this Privacy Policy</a>
+              </li>
+              <li class="mt-3">
+                <a href="#questions-and-concerns">Questions and concerns</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block footer %}
+  {% include 'footer_v2.html' %}
+{% endblock %}
+
+{% block localscripts %}
+  <script type="text/javascript">
+    const header = document.querySelector('header.navbar');
+    const footer = document.querySelector('.page-footer');
+    const rightSidebar = document.querySelector('.sidebar-right');
+    const appMain = document.querySelector('.app-main');
+    const appMainY = appMain.getBoundingClientRect()['y'];
+    const stickyContent = document.querySelector('.sticky-content');
+
+    function setRightSidebarHeight() {
+      console.log(appMain.getBoundingClientRect()['y']);
+      const newAppMainY = appMain.getBoundingClientRect()['y'];
+      stickyContent.style.top = `${appMainY - newAppMainY}px`;
+      const docH = document.documentElement.clientHeight;
+      const headerH = header.clientHeight;
+      const footerY = footer.getBoundingClientRect()['y'];
+      const style = rightSidebar.currentStyle || window.getComputedStyle(rightSidebar);
+      const marginTop = parseInt(style.marginTop);
+      const marginBottom = parseInt(style.marginBottom);
+      stickyContent.style.height = (footerY - headerH - marginTop - marginBottom - 4) + 'px';
+    }
+
+    setRightSidebarHeight();
+    window.onresize = () => {
+      setRightSidebarHeight();
+    };
+    window.onscroll = () => {
+      setRightSidebarHeight();
+    };
+  </script>
+{% endblock %}

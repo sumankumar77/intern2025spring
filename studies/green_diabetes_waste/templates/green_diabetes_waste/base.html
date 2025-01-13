@@ -1,0 +1,64 @@
+{% load i18n %}
+{% load static %}
+{% get_media_prefix as MEDIA_PREFIX %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'en-us' }}">
+  <head>
+    <title>{% block title %}Home{% endblock %}</title>
+
+    <meta charset="UTF-8"/>
+    <meta name="created" content="{% now 'jS M Y h:i' %}"/>
+    <meta name="description" content="{% block description %}{% endblock %}"/>
+    <meta name="viewport" content="{% block viewport %}width=device-width, initial-scale=1{% endblock %}"/>
+    <meta name="google-site-verification" content="w_YCiFNTFUlln9UmfkJx2K8E7ib9CCgDm62bW3Qe90M"/>
+    {% block favicon %}
+      <link rel="icon" href="{% static 'main/favicon.png' %}"/>
+    {% endblock %}
+
+    {% block styles %}
+      <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet"/>
+      <!--<link href="https://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet">-->
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+      <link href="{% static 'css/bootstrap-5.0.0-beta2/bootstrap.min.css' %}" rel="stylesheet" type="text/css">
+      <link rel="stylesheet" href="{% static 'css/bootstrap-multiselect-1.1.1.min.css' %}"/>
+      <link rel="stylesheet" href="{% static 'css/main-e959089e051.min.css' %}"/>
+    {% endblock %}
+
+    {% block extrastyles %}{% endblock %}
+
+    {% block localstyles %}{% endblock %}
+
+    {% block extrahead %}{% endblock %}
+
+    {% block tracking %}{% endblock %}
+  </head>
+
+  <body>
+
+    {% block layout %}
+
+      {% block content %}{% endblock %}
+
+      {% block footer %}{% endblock %}
+
+    {% endblock %}
+
+    {% block cdn_scripts %}
+    <script type="text/javascript" src="{% static 'js/jquery-3.4.1.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/popper-1.14.7.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/bootstrap-4.3.1.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/bootstrap-multiselect-1.1.1.min.js' %}"></script>
+    {% endblock %}
+
+    {% block scripts %}
+    <script type="text/javascript" src="{% static 'js/main-4109416224b.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/app.js' %}"></script>
+    {% endblock %}
+
+    {% block extrascripts %}{% endblock %}
+
+    {% block localscripts %}{% endblock %}
+
+  </body>
+
+</html>

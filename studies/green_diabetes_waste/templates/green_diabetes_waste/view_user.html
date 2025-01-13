@@ -1,0 +1,541 @@
+{% extends 'green_diabetes_waste/layout.html' %}
+{% load i18n %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+
+{% block title %}Daily Checklists{% endblock %}
+
+{% block localstyles %}
+<style>
+.icon-lg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.datepicker-container {
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-align: center;
+    align-items: center;
+    padding: .1rem;
+    margin-bottom: 0;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #5c6873;
+    text-align: center;
+    white-space: nowrap;
+    background-color: #f0f3f5;
+    border: 1px solid #e4e7ea;
+    border-radius: .25rem;
+}
+.list-group-horizontal {
+    -ms-flex-direction: row;
+    flex-direction: row;
+}
+.list-group-horizontal, .list-group-horizontal .list-group-item {
+    border: 0;
+}
+.list-group-horizontal .list-group-item {
+    padding: 0.25rem 0.5rem;
+}
+.list-group-horizontal .list-group-item:first-child {
+    padding-left: 0;
+}
+.list-item-desc {
+  color: #5c5c5e;
+  font-size: 0.8125rem;
+}
+a.list-item-title:hover{
+  text-decoration: none;
+}
+.list-actions button {
+  padding: .25rem .5rem;
+}
+.list-actions .material-symbols-outlined.active:hover {
+  cursor: pointer
+}
+.list-item-tag {
+  padding: .25rem 0.625rem;
+  border-radius: 5px;
+  font-style: italic;
+  display: inline-block;
+}
+.tag-success {
+  color: #20a8d8;
+  background-color: rgba(40,167,69,0.25);
+}
+.tag-danger {
+  color: #dc1a65;
+  background-color: rgb(108,117,125,0.5);
+}
+.list-item-tag [data-icon]::before {
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: -0.125rem;
+}
+.list-item-tag .icon-sm-plain {
+  margin-top: -0.125rem;
+}
+.list-item-desc + .list-item-desc,
+.list-item-tag + .list-item-tag,
+.list-item-title + .list-item-tag {
+  margin-left: 1.25rem;
+}
+@media (max-width: 575.98px) {
+  .pad-sm-down-sm {
+    padding: 0.5rem!important;
+  }
+}
+@media (max-width: 359.98px) {
+  .font-sm-down-xs {
+    font-size: 0.8125rem;
+  }
+}
+.overlay > .card-holder > .card {
+  min-height: 80%
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+  <div class="content">
+
+    <div id="msg-panel">
+       <div id="msg-container"></div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header">
+            Daily Checklists
+            <ul class="card-header-menu-right">
+              <li class="menu-item" data-token="1">
+                <button type="button" class="btn open-overlay px-0 py-0" data-overlay="add-token" data-toggle="tooltip"
+                      data-placement="bottom" title="Add a survey">
+                  <span class="material-symbols-outlined">assignment_add</span>
+              </button>
+              </li>
+              <li class="menu-item" data-token="2">
+                <button type="button" class="btn open-overlay px-0 py-0" data-overlay="add-token" data-toggle="tooltip"
+                      data-placement="bottom" title="Add a photo request">
+                  <span class="material-symbols-outlined">add_photo_alternate</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+          <div class="card-body pad-sm-down-sm">
+            <div class="card px-3 py-2">
+              <div>User: {{ study_user.username }}</div>
+              <div>Email: {{ study_user.email }}</div>
+              <div>Phone: {{ study_user.phone }}</div>
+            </div>
+
+            <div class="nav-tabs-boxed">
+              <ul class="nav nav-tabs" role="tablist">
+                <li class="nav-item">
+                  <a class="nav-link font-sm-down-sm active" data-toggle="tab" data-target="#nav-tab1"
+                     role="tab" aria-controls="nav-tab1" aria-selected="true">
+                    Checklist
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link font-sm-down-sm" data-toggle="tab" data-target="#nav-tab2"
+                     role="tab" aria-controls="nav-tab2" aria-selected="false">
+                    Upload Image
+                  </a>
+                </li>
+              </ul>
+              <div class="tab-content" id="tab-content">
+                <div class="tab-pane active" id="nav-tab1" role="tabpanel">
+                  <div id="survey-list" class="list-group font-sm-down-xs">
+                  {% for token, submissions, can_del in token_subs %}
+                    <div class="list-group-item list-group-item-action flex-column align-items-start" data-pk="{{ token.pk }}">
+                      <div class="d-flex w-100 justify-content-between">
+                        <div class="list-title list-actions">
+                          <a href="{% url 'gdw_view_survey' pk=token.pk %}"
+                             class="list-item-title{% if not submissions %} app-color{% endif %}">
+                            {{ token.date|date:'m/d/Y' }}</a>
+                          <div class="list-item-tag position-relative tag-success">
+                            <span class="material-symbols-outlined act-send{% if can_send %} active{% endif %}"
+                                  data-toggle="tooltip" data-placement="bottom" title="Sent Email">mail</span>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                              {{ token.n_emails }}
+                              <span class="visually-hidden">Sent Emails</span>
+                            </span>
+                          </div>
+                          <div class="list-item-tag position-relative tag-success">
+                            <span class="material-symbols-outlined act-send{% if can_send %} active{% endif %}"
+                                  data-toggle="tooltip" data-placement="bottom" title="Received SMS">sms</span>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                              {{ token.n_sms_received }}
+                              <span class="visually-hidden">received SMS</span>
+                            </span>
+                          </div>
+                          <div class="list-item-tag position-relative tag-danger">
+                            <span class="material-symbols-outlined"
+                                  data-toggle="tooltip" data-placement="bottom" title="Unreceived SMS">sms</span>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                              {{ token.n_sms|subtract:token.n_sms_received }}
+                              <span class="visually-hidden">unreceived SMS</span>
+                            </span>
+                          </div>
+                        </div>
+                        <div class="list-actions">
+                          {% if can_del %}
+                          <button type="button" class="btn btn-danger act-del">delete</button>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="mb-2">
+                        {% if submissions %}
+                          <div class="list-item-desc d-inline">Submissions:</div>
+                          {% for sub in submissions %}
+                          <div class="list-item-desc d-inline">
+                            <a href="{% url 'gdw_view_submission' pk=token.pk sub_pk=sub.pk %}">{{ sub.submission.submitted_at }}</a>
+                          </div>
+                          {% endfor %}
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                  </div>
+                </div>
+                <div class="tab-pane" id="nav-tab2" role="tabpanel">
+                  <div id="image-list" class="list-group font-sm-down-xs">
+                    {% for token, uploaded, can_del in token_uploads %}
+                    <div class="list-group-item list-group-item-action flex-column align-items-start" data-pk="{{ token.pk }}">
+                      <div class="d-flex w-100 justify-content-between">
+                        <div class="list-title list-actions">
+                          <a href="{% url 'gdw_view_upload' pk=token.pk %}"
+                             class="list-item-title{% if not uploaded %} app-color{% endif %}">
+                            {{ token.date|date:'m/d/Y' }}</a>
+                          <div class="list-item-tag position-relative tag-success">
+                            <span class="material-symbols-outlined act-send{% if can_send %} active{% endif %}"
+                                  data-toggle="tooltip" data-placement="bottom" title="Sent Emails">mail</span>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                              {{ token.n_emails }}
+                              <span class="visually-hidden">Sent Emails</span>
+                            </span>
+                          </div>
+                          <div class="list-item-tag position-relative tag-success">
+                            <span class="material-symbols-outlined act-send{% if can_send %} active{% endif %}"
+                                  data-toggle="tooltip" data-placement="bottom" title="Received SMS">sms</span>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                              {{ token.n_sms_received }}
+                              <span class="visually-hidden">received SMS</span>
+                            </span>
+                          </div>
+                          <div class="list-item-tag position-relative tag-danger">
+                            <span class="material-symbols-outlined" data-toggle="tooltip" data-placement="bottom"
+                                  title="Unreceived Messages">sms</span>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                              {{ token.n_sms|subtract:token.n_sms_received }}
+                              <span class="visually-hidden">unreceived SMS</span>
+                            </span>
+                          </div>
+                        </div>
+                        <div class="list-actions">
+                          {% if can_del %}
+                          <button type="button" class="btn btn-danger act-del">delete</button>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="add-token-overlay" class="overlay">
+  <div class="card-holder">
+    <div class="card width-adjust">
+      <div class="card-header">
+        Add a Token
+      </div>
+      <div class="card-body card-scrollbar">
+        <form id="add-token-form" method="post" novalidate class="overlay-form">
+          {% csrf_token %}
+          <div class="alert alert-danger non-field-errors d-none" role="alert"></div>
+          {% for hidden_field in form.hidden_fields %}
+            {{ hidden_field }}
+          {% endfor %}
+          {% for field in form.visible_fields %}
+          <div class="form-group field-wrapper mb-4">
+            <label class="ps-0 mt-1" for="{{ field.auto_id }}">{{ field.label }}</label>
+            {% render_field field class+="form-control" %}
+            <div class="invalid-feedback"></div>
+          </div>
+          {% endfor %}
+          <div class="text-right mt-2">
+            <button type="submit" class="ibtn ibtn-primary">Submit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="close-overlay" data-overlay="add-token">×</div>
+</div>
+{% endblock %}
+
+{% block localscripts %}
+<script type="text/javascript" src="{% static 'js/date-time-picker.js' %}" class="view-script"></script>
+<script class="view-script" type="text/javascript">
+(function() {
+
+  const LIST_ITEM_SELECTOR = '.list-group-item',
+        ACTION_SEND_SMS = 'send_sms',
+        ACTION_SEND_EMAIL = 'send_email';
+
+  // Initialize date picker
+  const initDatePicker = function (host) {
+    if (!!host) {
+      const datePicker = new DateTimePicker(
+        host, {
+          'dtpickerId': host.id + '-datepicker',
+          'frameId': host.id + '-datepicker-frame',
+          'xPosition': 'left',
+          'firstdate': new Date(2021, 1, 1),
+          'initialdate': host.value === '' ? null : toDateObj(host.value),
+        });
+    }
+  };
+  document.querySelectorAll('.input-group > input.date-picker').forEach(initDatePicker);
+
+
+  // delete token
+  const deleteTokenHandler = function (e) {
+    const pk = $(e.target).closest(LIST_ITEM_SELECTOR).data('pk');
+    const token = e.target.closest('.tab-pane').id === 'nav-tab1' ? '1' : '2';
+    const dialog = 'Are you sure you want to delete this token? Click "Yes" to continue.';
+    confirmSubmit(dialog, function () {
+      const csrftoken = getCookie('csrftoken');
+      $.ajax({
+        url: window.location.href,
+        type: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: {'pk': pk, 'delete': true, 'token': token},
+        success: function (json) {
+          if (json.success) {
+            createCustomMessage('Success', false);
+            $(e.target).closest(LIST_ITEM_SELECTOR).remove();
+          } else {
+            const err = json.error || 'Cannot delete checklist date at this time.'
+            createCustomMessage(err);
+          }
+        },
+        error: function (xhr, errmsg, err) {
+          $.fn.animateMessage('We have encountered an error: ' + errmsg, 'error');
+          console.log(xhr.status + ": " + xhr.responseText);
+        }
+      });
+    });
+  };
+
+  $('.act-del').click(deleteTokenHandler);
+
+  const createListItem = function (pk, date, timestamps, href) {
+    const docFrag = document.createDocumentFragment();
+    const li = createEl(docFrag, 'div', {
+      'class': 'list-group-item list-group-item-action flex-column align-items-start',
+      'data-pk': pk
+    });
+    const content = createEl(li, 'div', {'class': 'd-flex w-100 justify-content-between'});
+    const title = createEl(content, 'div', {'class': 'list-title list-actions'})
+    const anchor = createEl(title, 'a', {
+      'href': href,
+      'class': 'list-item-title app-color',
+      'innerHTML': date
+    });
+    const tagEmail = createEl(title, 'div', {
+      'class': 'list-item-tag position-relative tag-success',
+      'style': 'margin-left: 1.5rem'
+    });
+    const iconEmail = createEl(tagEmail, 'span', {
+      'class': 'material-symbols-outlined act-send active',
+      'data-toggle': 'tooltip',
+      'data-placement': 'bottom',
+      'title': 'Sent Emails',
+      'innerHTML': 'mail'
+    });
+    iconEmail.addEventListener('click', sendActionHandler);
+    const bgEmail = createEl(tagEmail, 'span', {
+      'class': 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success',
+      'innerHTML': '0'
+    });
+    createEl(bgEmail, 'span', {'class': 'visually-hidden', 'innerHTML': 'Sent Emails'});
+    const tagSms = createEl(title, 'div', {
+      'class': 'list-item-tag position-relative tag-success',
+      'style': 'margin-left: 1.5rem'
+    });
+    const iconSms = createEl(tagSms, 'span', {
+      'class': 'material-symbols-outlined act-send active',
+      'data-toggle': 'tooltip',
+      'data-placement': 'bottom',
+      'title': 'Received SMS',
+      'innerHTML': 'sms'
+    });
+    iconSms.addEventListener('click', sendActionHandler);
+    const bgSms = createEl(tagSms, 'span', {
+      'class': 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success',
+      'innerHTML': '0'
+    });
+    createEl(bgSms, 'span', {'class': 'visually-hidden', 'innerHTML': 'Received SMS'});
+    const tagSms2 = createEl(title, 'div', {
+      'class': 'list-item-tag position-relative tag-danger',
+      'style': 'margin-left: 1.5rem'
+    });
+    const iconSms2 = createEl(tagSms2, 'span', {
+      'class': 'material-symbols-outlined',
+      'data-toggle': 'tooltip',
+      'data-placement': 'bottom',
+      'title': 'Unreceived SMS',
+      'innerHTML': 'sms'
+    });
+    const bgSms2 = createEl(tagSms2, 'span', {
+      'class': 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger',
+      'innerHTML': '0'
+    });
+    createEl(bgSms2, 'span', {'class': 'visually-hidden', 'innerHTML': 'Unreceived SMS'});
+    const actions = createEl(content, 'div', {'class': 'list-actions'});
+    const del = createEl(actions, 'button', {
+      'type': 'button',
+      'class': 'btn btn-danger act-del',
+      'innerHTML': 'delete'
+    });
+    del.addEventListener('click', deleteTokenHandler);
+    const descContainer = createEl(li, 'div', {'class': 'mb-2'});
+    return li;
+  };
+
+  document.querySelectorAll('ul.card-header-menu-right > li.menu-item > button.open-overlay').forEach(e => {
+    e.onclick = (event) => {
+      console.log(event.target);
+      const token = event.target.closest('li.menu-item').getAttribute('data-token');
+      const input = document.querySelector('#add-token-form input#id_token');
+      input.value = token;
+    };
+  });
+
+  const closeOverlay = function (overlayId) {
+    document.body.classList.remove('position-fixed');
+    const overlay = document.getElementById(overlayId)
+    overlay.classList.remove('on-overlay');
+    overlay.querySelector('form').reset();
+  };
+
+  const makeAjaxForm = function (form) {
+    const origValues = {};
+    form.querySelectorAll('input').forEach(function(elem) {
+      origValues[elem.name] = elem.value;
+    });
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const newValues = {};
+      form.querySelectorAll('input').forEach(function(elem) {
+        newValues[elem.name] = elem.value;
+      });
+      let isChanged = false;
+      for (const key in origValues) {
+        if (origValues[key] !== newValues[key]) {
+          isChanged = true;
+          break;
+        }
+      }
+      if (isChanged) {
+        // submit
+        const csrftoken = getCookie('csrftoken');
+        $.ajax({
+          url: window.location.href,
+          type: 'POST',
+          data: newValues,
+          headers: {'X-CSRFToken': csrftoken},
+          success: function (json) {
+            //console.log(json);
+            if (!!json.success) {
+              const data = json['data'];
+              if (!!data && !!newValues['token']) {
+                const pk = data['pk'],
+                      date = data['date'],
+                      timestamps = data['timestamps'] || '';
+                if (newValues['token'].toString() === '1') {
+                  const href = "{% url 'gdw_view_survey' pk='TOKEN_ID' %}".replace('TOKEN_ID', pk);
+                  const li = createListItem(pk, date, timestamps, href);
+                  document.getElementById('survey-list').prepend(li);
+                } else if (newValues['token'].toString() === '2') {
+                  const href = '{% url 'gdw_view_upload' pk='TOKEN_ID' %}'.replace('TOKEN_ID', pk);
+                  const li = createListItem(pk, date, timestamps, href);
+                  document.getElementById('image-list').prepend(li);
+                }
+              }
+              closeOverlay('add-token-overlay');
+              createCustomMessage(json.success, false);
+            } else {
+              renderFormErrors(form, json)
+            }
+          },
+          error: function (xhr, errmsg, err) {
+            $.fn.animateMessage('Connection Error');
+            console.log(xhr.status + ": " + xhr.responseText);
+          }
+        });
+      }
+    });
+  }
+
+  makeAjaxForm(document.getElementById('add-token-form'));
+
+  const sendActionHandler = function (e) {
+    const icon = e.target.innerHTML;
+    const token = e.target.closest('.tab-pane').id === 'nav-tab1' ? "1" : "2";
+    const action = icon === 'sms' ? ACTION_SEND_SMS : (icon === 'mail' ? ACTION_SEND_EMAIL : null);
+    //console.log('clicked', e, icon, action);
+    if (!!action) {
+      const pk = $(e.target).closest(LIST_ITEM_SELECTOR).data('pk');
+      const csrftoken = getCookie('csrftoken');
+      $.ajax({
+        url: "{% url 'gdw_actions' %}",
+        type: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: {'pk': pk, 'action': action, 'token': token},
+        success: function (json) {
+          if (json.success) {
+            if (action === ACTION_SEND_EMAIL) {
+              const tag = e.target.closest('.list-item-tag');
+              classList(tag).remove('tag-danger').add('tag-success');
+              //$(e.target).closest('.list-item-tag').removeClass('tag-danger').addClass('tag-success');
+              const badge = tag.querySelector('span.badge.position-absolute');
+              if (!!badge) {
+                badge.innerHTML = (parseInt(badge.innerHTML) + 1).toString();
+              }
+            }
+            createCustomMessage(json.success, false);
+          } else {
+            createCustomMessage(json.error);
+          }
+        },
+        error: function (xhr, errmsg, err) {
+          $.fn.animateMessage('We have encountered an error: ' + errmsg, 'error');
+          console.log(xhr.status + ": " + xhr.responseText);
+        }
+      });
+    }
+  }
+
+  $('.act-send.active').click(sendActionHandler);
+
+
+}());
+</script>
+{% endblock %}

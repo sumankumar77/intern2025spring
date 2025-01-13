@@ -1,0 +1,28 @@
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+<div class="ll-table table-inbox table-hover">
+    <div class="msg-body">
+        <form method="post" id="message-body" novalidate>
+            {% csrf_token %}
+            {% for count, first_msg, message in messages %}
+            <div class="msg-row {{ message.new|yesno:'unread,read,' }}" href="{% url 'messages_detail_v2' message_id=first_msg.id %}">
+                <div class="msg-chkbox">
+                    <input type="checkbox" class="mail-checkbox" value="{{first_msg.id}}">
+                </div>
+                <div class="msg-sub">
+                    <span class="msg-sub-text">{{first_msg.subject}}</span><span class="msg-body-text"> &mdash; {{message.body}}</span>
+                </div>
+                {% if message.is_today %}
+                <div class="msg-date text-right">{{message.sent_at|date:'g:i A'}}</div>
+                {% elif message.is_this_year %}
+                <div class="msg-date text-right">{{message.sent_at|date:'M j'}}</div>
+                {% else %}
+                <div class="msg-date text-right">{{message.sent_at|date:'M j, Y'}}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </form>
+    </div>
+</div>

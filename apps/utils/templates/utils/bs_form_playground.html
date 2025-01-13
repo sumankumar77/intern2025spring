@@ -1,0 +1,778 @@
+{% extends 'layout_bs5.html' %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+{% block title %}Playground{% endblock %}
+
+{% block localstyles %}
+<style>
+.mw-xl {
+  max-width: 1200px;
+}
+.img-thumbnail.img-circle {
+  max-width: 100%;
+  height: auto;
+  border-radius: 50em;
+  padding: .25rem;
+}
+.btn-google {
+  background: #c32f10;
+}
+.btn.btn-block {
+  font-weight: 700;
+  color: #fff;
+}
+.flex-form {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+}
+.form-group.form-check .form-check-input {
+  margin-left: 0;
+}
+.form-group.form-check .form-check-label {
+  margin-left: .5rem;
+}
+.slider {
+  width: 100%;
+}
+/* .shadow-none in bs5 */
+input:focus, textarea:focus, input:focus + label {
+  box-shadow: none !important;
+}
+/*
+  reverse file input
+  height = font height + y padding
+  For small or large size, custom these 2 numbers
+*/
+.reverse-file-choose {
+  position: relative;
+  display: inline-block;
+  height: calc(1.5em + 0.75rem);
+  width: 100%;
+  margin-bottom: 0;
+}
+.reverse-file-input {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: calc(1.5em + 0.75rem);
+  margin: 0;
+  opacity: 0;
+}
+.reverse-file-label {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  height: calc(1.5em + 0.75rem);
+  padding: .375rem .75rem;
+  color: rgba(0, 0, 0, .87);
+  background-color: #f8f9fa;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, .12);
+  border-radius: .3rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reverse-file-label::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: block;
+  line-height: 1.5;
+  color: #495057;
+  content: "Browse";
+  background-color: #e9ecef;
+  border-left: inherit;
+  border-radius: 0 .25rem .25rem 0;
+  height: calc(1.5em + 0.75rem - 1px);
+  padding: .375rem .75rem;
+  border-left: none;
+}
+/* custom slider */
+.range-wrapper {
+  max-width: clamp(200px, 50vw, 500px);
+  /*margin: 25px auto 0;*/
+  padding-top: 25px;
+}
+.slider-wrapper {
+  margin: 24px 0;
+  display: flex;
+  align-items: center;
+}
+
+.range-slider {
+  --track-bg-color: #959595;
+  --track-color: #4471ef;
+  --track-height: 5px;
+  --thumb-size: calc(var(--track-height) * 4);
+  --thumb-color: #4471ef;
+  position: relative;
+  width: 100%;
+  display: grid;
+  /*margin-bottom: calc(var(--thumb-size) * -1);*/
+  /*margin-bottom: calc(var(--thumb-size));*/
+}
+.range-slider .range-labels {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 10px;
+}
+.range-slider .range-labels .range-label {
+  display: inline-flex;
+  font-size: 16px;
+  color: var(--white);
+  line-height: 1;
+}
+.range-slider .range-labels .range-label-start {
+  align-self: flex-start;
+}
+.range-slider .range-labels .range-label-end {
+  align-self: flex-end;
+}
+
+.range-slider .track-wrapper {
+  position: relative;
+  z-index: 1;
+  height: var(--track-height);
+  margin-bottom: var(--thumb-size);
+  display: grid;
+  align-items: center;
+  margin: 0 calc(var(--thumb-size) / 2);
+}
+.range-slider .track-wrapper .track {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 5px;
+  background-color: var(--track-bg-color);
+}
+
+.range-slider .track-wrapper .range-between {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 5px;
+  background-color: var(--track-color);
+}
+
+.range-slider .track-wrapper .thumb {
+  --shadow-sizer: 2;
+  --shadow-size: calc(var(--thumb-size) * var(--shadow-sizer));
+  --shadow-color: var(--thumb-color);
+  --shadow-opacity: 0;
+  position: absolute;
+  z-index: 3;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  background-color: #fff;
+  border: 2px solid var(--thumb-color);
+  border-radius: 50%;
+  transition: box-shadow 0.3s ease-in-out;
+}
+.range-slider .track-wrapper .thumb.hover {
+  background-color: var(--thumb-color);
+}
+.range-slider .track-wrapper .thumb::before {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  background-color: var(--shadow-color);
+  width: var(--shadow-size);
+  height: var(--shadow-size);
+  border-radius: inherit;
+  opacity: var(--shadow-opacity);
+}
+.range-slider .track-wrapper .thumb.left {
+  left: 0;
+  transform: translate(calc(var(--thumb-size) / -2), 0px);
+}
+.range-slider .track-wrapper .thumb.right {
+  right: 0;
+  transform: translate(calc(var(--thumb-size) / 2), 0px);
+}
+.range-slider .track-wrapper .thumb.hover {
+  --_shadow-opacity: .2;
+}
+.range-slider .track-wrapper .thumb.active {
+  --_shadow-opacity: .4;
+  --_shadow-sizer: 4;
+}
+
+.range-slider input[type='range'] {
+  position: absolute;
+  pointer-events: none;
+  -webkit-appearance: none;
+  z-index: 2;
+  height: var(--track-height);
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+  bottom: 0;
+}
+.range-slider input[type='range']::-webkit-slider-thumb {
+  pointer-events: all;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: 0;
+  border: 0 none;
+  background-color: var(--thumb-color);
+  -webkit-appearance: none;
+}
+.range-slider input[type='range']::-moz-range-thumb {
+  pointer-events: all;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: 0;
+  border: 0 none;
+  background-color: var(--thumb-color);
+  -webkit-appearance: none;
+}
+.slider-wrapper .slider-reels {
+  color:#4471ef;
+  text-align:center;
+  font-weight:600;
+  line-height:40px;
+  height:40px;
+  overflow:hidden;
+  margin-left:10px;
+  padding: 0 5px;
+}
+.slider-wrapper .slider-reels .reels-value-wrapper {
+  transition:all 300ms ease-in-out;
+}
+/* custom single slider */
+.range-input {
+  /*position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);*/
+  background:#eee;
+  padding:10px 20px;
+  display:flex;
+  align-items:center;
+  border-radius:10px;
+  font-family:"Raleway",sans-serif;
+}
+.range-input input {
+  -webkit-appearance:none;
+  width:200px;
+  height:2px;
+  background:#4471ef;
+  border:none;
+  outline:none;
+}
+.range-input input::-webkit-slider-thumb {
+  -webkit-appearance:none;
+  width:20px;
+  height:20px;
+  background:#eee;
+  border:2px solid #4471ef;
+  border-radius:50%;
+}
+.range-input input::-webkit-slider-thumb:hover {
+  background:#4471ef;
+}
+.range-input .value {
+  color:#4471ef;
+  text-align:center;
+  font-weight:600;
+  line-height:40px;
+  height:40px;
+  overflow:hidden;
+  margin-left:10px;
+}
+.range-input .value div {
+  transition:all 300ms ease-in-out;
+}
+/* custom file upload */
+.upload-field {
+  text-align: center;
+}
+.upload-field .upload-field-label {
+  width: 100%;
+  text-align: left;
+}
+.drag-n-drop-zone {
+  margin: auto;
+  background: #5cb85c;
+  width: 80%;
+  /*height: 50%;*/
+  height: 100px;
+  border: 3px dashed white;
+  text-align: center;
+  color: white;
+  /*z-index: 20;*/
+  transition: all 0.3s ease-out;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 0 0.25em 0 rgba(0, 0, 0, 0.25);
+  padding: 15px 0;
+}
+.material-symbols-outlined.mso-lg {
+  font-size: 48px;
+}
+.material-symbols-outlined.mso-sm {
+  font-size: 16px;
+}
+.upload-file-label {
+  width: 168px;
+  border-radius: 5px;
+  cursor: pointer;
+  font: 700 14px/40px "Roboto", sans-serif;
+  border: 1px solid #99a2a8;
+  text-align: center;
+  transition: all 300ms linear 0s;
+  color: #5f6771;
+}
+.material-symbols-outlined {
+  vertical-align: middle;
+  padding-bottom: 6px;
+}
+.upload-file-label:hover {
+  background-color: #5cb85c;
+}
+.upload-file-input {
+  display: none;
+}
+.drag-n-drop-zone.highlight {
+  border-color: #782F40;
+}
+.file-summary {
+  max-width: 600px;
+  margin: auto;
+  text-align: left;
+  color: #0d6efd;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  -ms-word-break: break-all;
+  /* This is the dangerous one in WebKit, as it breaks things wherever */
+  word-break: break-all;
+  /* Instead use this non-standard one: */
+  word-break: break-word;
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+.delete-file-input {
+  padding: 3px;
+  margin-left: 3px;
+  color: #dc1a65;
+}
+.delete-file-input:hover {
+  cursor: pointer;
+  color: #dc3545;
+}
+.image-preview .image-container img {
+  width: 100%;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid mw-xl px-0 py-5">
+
+  <div class="row">
+    <div class="col-sm-3">
+      <div class="row align-items-center">
+        <img id="profile-image"
+            {% if up_form.instance.image %}
+             src="{{ up_form.instance.image.url }}"
+            {% else %}
+             src="{% static 'main/avatar_2x.png' %}"
+            {% endif %}
+             class="img-circle img-thumbnail mx-auto" alt="avatar">
+      </div>
+      <div class="row">
+        <div class="col-12" id="file-form-container"></div>
+      </div>
+    </div>
+
+    <div class="col-sm-9" id="form-container">
+
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12" id="element-container"></div>
+  </div>
+
+  <!--<div class="row">
+    <div class="col-12">
+      <div class="range-wrapper">
+        <div class="range-slider">
+          <div class="range-labels">
+            <span class="range-label range-label-start">0</span>
+            <span class="range-label range-label-end">100</span>
+          </div>
+          <input type="range" min="0" value="0" max="149" name="" id="">
+          <input type="range" min="1" value="150" max="150" name="" id="">
+
+          <div class="track-wrapper">
+            <div class="track"></div>
+            <div class="range-between"></div>
+            <div class="thumb left"></div>
+            <div class="thumb right"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </di>-->
+
+  <div class="row">
+    <div class="col-12 position-relative">
+      <div class="range-input">
+        <input type="range" min="0" max="100" value="0" step="10">
+        <div class="value">
+          <div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row py-5">
+    <div class="col-12" id="form-container-2"></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block localscripts %}
+<script>
+//(function () {
+
+  window.TIMEZONES = {{ timezones | safe }};
+
+  const fileFormContainer = document.getElementById('file-form-container');
+  const form1 = new app.Form(fileFormContainer, {
+    fieldWrapperClass: 'form-group mb-3',
+    fieldData: [
+      {label: 'Plain File Input', name: 'fileInput1', type: 'file'},
+      {label: 'Multiple Files Input', name: 'fileInput2', type: 'file', multiple: true},
+      {label: 'Disabled File Input', name: 'fileInput3', type: 'file', disabled: true},
+      {label: 'Small File Input', name: 'fileInput4', type: 'file', size: 'small'},
+      {label: 'Large File Input', name: 'fileInput5', type: 'file', size: 'large'},
+      {label: 'Reverse File Input', name: 'fileInput6', type: 'file', reverse: true,
+        customFieldWrapperClass: 'reverse-file-choose',
+        inputClass: 'reverse-file-input', labelClass: 'reverse-file-label'},
+    ],
+    showSubmitButton: false,
+    ajax: true,
+    renderOnError: true,
+    resetOnSubmit: false,
+    animateResult: false,
+    cb: (json) => {
+      console.log(json);
+    }
+  });
+
+  const formatUTCOffset = function (offset) {
+    return `(UTC${parseInt(offset) >= 0 ? '+' : ''}${parseInt(offset)}:00) `;
+  }
+
+  const formContainer = document.getElementById('form-container');
+  const form2 = new app.Form(formContainer, {
+    formClass: 'flex-form',
+    fieldWrapperClass: 'form-group col-lg-6 px-2 mb-3',
+    fieldData: [
+      {label: 'Plain Text Field', name: 'text1', type: 'text'},
+      {label: 'Text Field with Initial', name: 'text2', type: 'text', initial: 'Initial'},
+      {label: 'Text Field with Placeholder', name: 'text3', type: 'text', placeholder: 'Placeholder'},
+      {label: 'Disabled Text Field', name: 'text4', type: 'text', disabled: true},
+      {label: 'Disabled Text Field with Initial', name: 'text4', type: 'text', initial: 'Initial', disabled: true},
+      {label: 'Plain Select', name: 'select1', type: 'select', options: ['Option 1', 'Option 2', 'Option 3']},
+      {label: 'Search Select', name: 'select2', type: 'select', options: ['Option 1', 'Option 2', 'Option 3'], hasSearch: true},
+      {label: 'Multiple Select', name: 'select3', type: 'select', options: ['Option 1', 'Option 2', 'Option 3'], multiple: true},
+      {label: 'Multiple Select with Search', name: 'select4', type: 'select', options: ['Option 1', 'Option 2', 'Option 3'], multiple: true, hasSearch: true},
+      {label: 'Disabled Select', name: 'select5', type: 'select', options: ['Option 1', 'Option 2', 'Option 3'], disabled: true},
+      {label: 'Select with Pre-Text', name: 'select6', type: 'select', options: ['Option 1', 'Option 2', 'Option 3'], preOptions: ['(Pre 1) ', '(Pre 2) ', '(Pre 3) ']},
+      {label: 'Select with Post-Text', name: 'select7', type: 'select', options: ['Option 1', 'Option 2', 'Option 3'], postOptions: ['(Post 1) ', '(Post 2) ', '(Post 3) ']},
+      {label: 'Select with Pre- and Post-Text', name: 'select8', type: 'select', options: ['Option 1', 'Option 2', 'Option 3'],
+        preOptions: ['(Pre 1) ', '(Pre 2) ', '(Pre 3) '], postOptions: ['(Post 1) ', '(Post 2) ', '(Post 3) ']},
+      {label: 'Timezone Select', name: 'select9', type: 'select', options: TIMEZONES.map(x => x[0]), preOptions: TIMEZONES.map(x => formatUTCOffset(x[1]))},
+      {label: 'Phone Field', name: 'phone', type: 'phone'},
+      {name: 'hiddenField', type: 'hidden', initial: 'hiddenValue'},
+      {label: 'Textarea Field', name: 'textarea1', type: 'textarea', initial: 'Initial text. Lorem is ipsum.'},
+      {label: 'Textarea Field with rows', name: 'textarea2', type: 'textarea', rows: 10, initial: 'Initial text. Lorem is ipsum.'},
+      {label: 'Checkbox Field', name: 'checkbox1', type: 'checkbox'},
+      {label: 'Checked Checkbox Field', name: 'checkbox2', type: 'checkbox', checked: true},
+      {label: 'Disabled Checkbox Field', name: 'checkbox3', type: 'checkbox', disabled: true},
+      {label: 'Disabled Checked Checkbox Field', name: 'checkbox4', type: 'checkbox', disabled: true, checked: true},
+      {label: 'Radio Select Field', name: 'radio1', type: 'radio', options: ['radio 1', 'radio 2', 'radio 3']},
+      {label: 'Radio Select Field with Initial', name: 'radio2', type: 'radio', options: ['radio 1', 'radio 2', 'radio 3'], initial: 2},
+      {label: 'Checkbox MultiSelect Field', name: 'multicheck1', type: 'multicheck', options: ['check 1', 'check 2', 'check 3']},
+      {label: 'Switch Field', name: 'switch1', type: 'checkbox', customFieldWrapperClass: 'form-check form-switch'},
+      {label: 'Enabled Switch Field', name: 'switch2', type: 'checkbox', customFieldWrapperClass: 'form-check form-switch', checked: true},
+      {label: 'Toggle Button', name: 'toggleButton1', type: 'checkbox', inputClass: 'btn-check', labelClass: 'btn btn-outline-primary'},
+      {label: 'Checked Toggle Button', name: 'toggleButton2', type: 'checkbox', inputClass: 'btn-check', labelClass: 'btn btn-outline-secondary', checked: true},
+      {label: 'Slider', name: 'slider1', type: 'range', min: 1, max: 10},
+      {label: 'Slider with Labels', name: 'slider1', type: 'range', min: 1, max: 10},
+      {label: 'Slider with Reels', name: 'slider2', type: 'range', min: 1, max: 10},
+      {label: 'Range Slider with Labels', name: 'slider3', type: 'range', min: 1, max: 20, isRange: true},
+      {label: 'File Upload', name: 'file1', type: 'file', useChooseButton: true},
+      {label: 'File Upload with DND', name: 'file2', type: 'file', useChooseButton: true, showDragAndDrop: true},
+      {label: 'Multiple File Upload with DND', name: 'file3', type: 'file', multiple: true, useChooseButton: true, showDragAndDrop: true},
+      {label: 'Multiple Image Upload with DND', name: 'image2', type: 'image', multiple: true, useChooseButton: true, showDragAndDrop: true},
+      {label: 'Image Upload with DND and Preview', name: 'image3', type: 'image', useChooseButton: true, showDragAndDrop: true, showPreview: true},
+    ],
+    showSubmitButton: false,
+    ajax: true,
+    renderOnError: true,
+    resetOnSubmit: false,
+    animateResult: false,
+    cb: (json) => {
+      console.log(json);
+    }
+  });
+
+  const elContainer = document.getElementById('element-container');
+
+  const docFrag1 = document.createDocumentFragment();
+  const section1 = app.createEl(docFrag1, 'section');
+  const slider1Label = app.createEl(section1, 'div', {innerHTML: 'Slider'});
+  const slider1 = new app.Slider({
+    container: section1,
+    name: 'slider1',
+    min: 1,
+    max: 5
+  });
+  elContainer.appendChild(docFrag1);
+
+  const docFrag2 = document.createDocumentFragment();
+  const section2 = app.createEl(docFrag2, 'section');
+  const slider2Label = app.createEl(section2, 'div', {innerHTML: 'Slider'});
+  const slider2 = new app.Slider({
+    container: section2,
+    name: 'slider2',
+    min: 1,
+    max: 100,
+    trackHeight: 2
+  });
+  elContainer.appendChild(docFrag2);
+
+  const docFrag3 = document.createDocumentFragment();
+  const section3 = app.createEl(docFrag3, 'section');
+  const slider3Label = app.createEl(section3, 'div', {innerHTML: 'Slider with Reels'});
+  const slider3 = new app.Slider({
+    container: section3,
+    name: 'slider3',
+    min: 1,
+    max: 100,
+    trackHeight: 2,
+    showReels: true,
+  });
+  elContainer.appendChild(docFrag3);
+
+  const docFrag4 = document.createDocumentFragment();
+  const section4 = app.createEl(docFrag4, 'section');
+  const slider4Label = app.createEl(section4, 'div', {innerHTML: 'Slider with Labels'});
+  const slider4 = new app.Slider({
+    container: section4,
+    name: 'slider4',
+    min: 1,
+    max: 100,
+    trackHeight: 2,
+    showLabels: true,
+  });
+  elContainer.appendChild(docFrag4);
+
+  const docFrag5 = document.createDocumentFragment();
+  const section5 = app.createEl(docFrag5, 'section');
+  const slider5Label = app.createEl(section5, 'div', {innerHTML: 'Range Slider with Labels'});
+  const slider5 = new app.Slider({
+    container: section5,
+    name: 'slider5',
+    min: 1,
+    max: 100,
+    isRange: true,
+    trackHeight: 2,
+    showLabels: true,
+  });
+  elContainer.appendChild(docFrag5);
+
+
+
+  /* test custom slider */
+  /* https://codepen.io/sarmunbustillo/pen/XWEYERa */
+  /* https://medium.com/@predragdavidovic10/native-dual-range-slider-html-css-javascript-91e778134816 */
+  /*function createslider(element) {
+    const inputs = element.querySelectorAll('input');
+
+    const thumbLeft = element.querySelector('.thumb.left');
+    const thumbRight = element.querySelector('.thumb.right');
+    const rangeBetween = element.querySelector('.range-between');
+    const labelMin = element.querySelector('.range-label-start');
+    const labelMax = element.querySelector('.range-label-end');
+
+    const [inputStart, inputEnd] = inputs;
+    const min = parseInt(inputStart.value);
+    const max = parseInt(inputEnd.value);
+
+    setStartValueCustomSlider(inputStart, inputEnd, thumbLeft, rangeBetween);
+    setEndValueCustomSlider(inputEnd, inputStart, thumbRight, rangeBetween);
+
+    setEvents(inputStart, inputEnd, thumbLeft, thumbRight, labelMin, labelMax, rangeBetween);
+  }
+
+  function setLabelValue(label, input) {
+    label.innerHTML = `${input.value}`;
+  }
+
+
+  function setStartValueCustomSlider(inputStart, inputEnd, pseudoEl, range) {
+    const maximum = Math.min(parseInt(inputStart.value), parseInt(inputEnd.value) - 1);
+    const percent = ((maximum - inputStart.min) / (inputStart.max - inputStart.min)) * 100;
+    pseudoEl.style.left = percent + '%';
+    range.style.left = percent + '%';
+  }
+
+  function setEndValueCustomSlider(inputEnd, inputStart, pseudoEl, range) {
+    const minimum = Math.max(parseInt(inputEnd.value), parseInt(inputStart.value) + 1);
+    const percent = ((minimum - inputEnd.min) / (inputEnd.max - inputEnd.min)) * 100;
+    pseudoEl.style.right = 100 - percent + '%';
+    range.style.right = 100 - percent + '%';
+  }
+
+
+  function setEvents(
+    inputStart,
+    inputEnd,
+    thumbLeft,
+    thumbRight,
+    labelMin,
+    labelMax,
+    rangeBetween,
+    rangesValues
+  ) {
+    inputStart.addEventListener('input', () => {
+      setStartValueCustomSlider(inputStart, inputEnd, thumbLeft, rangeBetween);
+      setLabelValue(labelMin, inputStart);
+    });
+
+    inputEnd.addEventListener('input', () => {
+      setEndValueCustomSlider(inputEnd, inputStart, thumbRight, rangeBetween);
+      setLabelValue(labelMax, inputEnd);
+    });
+
+    // add css classes on hover and drag
+    inputStart.addEventListener('mouseover', function () {
+      thumbLeft.classList.add('hover');
+    });
+    inputStart.addEventListener('mouseout', function () {
+      thumbLeft.classList.remove('hover');
+    });
+    inputStart.addEventListener('mousedown', function () {
+      thumbLeft.classList.add('active');
+    });
+    inputStart.addEventListener('pointerup', function () {
+      thumbLeft.classList.remove('active');
+    });
+
+    inputEnd.addEventListener('mouseover', function () {
+      thumbRight.classList.add('hover');
+    });
+    inputEnd.addEventListener('mouseout', function () {
+      thumbRight.classList.remove('hover');
+    });
+    inputEnd.addEventListener('mousedown', function () {
+      thumbRight.classList.add('active');
+    });
+    inputEnd.addEventListener('pointerup', function () {
+      thumbRight.classList.remove('active');
+    });
+
+    // Mobile
+    inputStart.addEventListener('touchstart', function () {
+      thumbLeft.classList.add('active');
+    });
+    inputStart.addEventListener('touchend', function () {
+      thumbLeft.classList.remove('active');
+    });
+    inputEnd.addEventListener('touchstart', function () {
+      thumbRight.classList.add('active');
+    });
+    inputEnd.addEventListener('touchend', function () {
+      thumbRight.classList.remove('active');
+    });
+  }
+
+  const slider = document.querySelector(".range-slider ");
+  createslider(slider)*/
+
+  /* custom singler slider */
+  /* https://codepen.io/dsr/pen/rNLxBxw */
+  let rangeInput = document.querySelector(".range-input input");
+  let rangeValue = document.querySelector(".range-input .value div");
+
+  let start = parseFloat(rangeInput.min);
+  let end = parseFloat(rangeInput.max);
+  let step = parseFloat(rangeInput.step);
+
+  for(let i=start;i<=end;i+=step){
+    rangeValue.innerHTML += '<div>'+i+'</div>';
+  }
+
+  rangeInput.addEventListener("input",function(){
+    let top = parseFloat(rangeInput.value)/step * -40;
+    rangeValue.style.marginTop = top+"px";
+  });
+
+  const formFieldData = JSON.parse('{{ form | safe }}');
+
+  const formContainer2 = document.getElementById('form-container-2');
+  const form3 = new app.Form(formContainer2, {
+    formClass: 'flex-form',
+    fieldWrapperClass: 'form-group col-lg-6 px-2 mb-3',
+    //fieldData: [
+    //  {label: 'Plain Text Field', name: 'text2-1', type: 'text'},
+    //  {label: 'Plain Select', name: 'select2-1', type: 'select', options: ['Option 1', 'Option 2', 'Option 3']},
+    //],
+    fieldData: formFieldData,
+    showSubmitButton: true,
+    ajax: true,
+    renderOnError: true,
+    resetOnSubmit: false,
+    animateResult: false,
+    cb: (json) => {
+      console.log(json);
+    }
+  });
+
+  /* Example form validators */
+  /*t.calendarForm = new app.Form(formWrapper, {
+    fieldData: [
+      {label: 'Start Date', name: 'startDate', type: 'date', initial: t.startDate},
+      {label: 'End Date', name: 'endDate', type: 'date', initial: t.endDate},
+      {label: null, name: 'type', type: 'hidden', initial: t.dataType},
+    ],
+    ajax: true,
+    method: 'get',
+    renderOnError: true,
+    resetOnSubmit: false,
+    animateResult: false,
+    validators: [
+      {'name1': 'startDate', 'name2': 'endDate', 'rel': 'lt', 'msg': 'End date must be after than start date'},
+    ],
+    cb: (json) => {}
+  });*/
+
+//})();
+</script>
+{% endblock %}
+

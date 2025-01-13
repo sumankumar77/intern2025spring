@@ -1,0 +1,28 @@
+{% extends 'layout.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Email Sent{% endblock %}
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block content_class %}block-content mt-navbar theme-07{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row pt-4">
+        <div class="col-12">
+            <div class="row mw-500 mx-auto card theme-00">
+                <div class="card-header mb-2 theme-00">
+                    <div class="text-center user-header">Activation email sent</div>
+                </div>
+                <div class="col-12 mb-2 text-white">
+                    Please confirm your email address to complete the registration.
+                </div>
+                <div class="col-12 mb-2 text-white">
+                    Didn't receive your email? <a href="{% url 'resend_activation_email' %}">Resend activation email.</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

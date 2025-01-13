@@ -1,0 +1,34 @@
+{% extends 'layout.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Error{% endblock %}
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block content_class %}block-content mt-navbar theme-07{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row pt-4">
+        <div class="col-12">
+            <div class="row mw-500 mx-auto card theme-00">
+                <div class="card-header mb-2 theme-00">
+                    <div class="col-12 text-center user-header">Error in Authorization</div>
+                </div>
+                <div class="col-12 mb-2 text-white">
+                    {% if messages %}
+                    <ul class="messages">
+                        {% for message in messages %}
+                        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                <div class="col-12 mb-2">
+                    <a href="{% url 'login' %}">Log in</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

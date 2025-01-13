@@ -1,0 +1,197 @@
+{% extends 'green_diabetes_waste/base.html' %}
+{% load static %}
+
+{% block title %}DigitalHealth{% endblock %}
+
+{% block extrastyles %}
+<style>
+.material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 200,
+  'GRAD' 200,
+  'opsz' 20
+}
+.material-symbols-outlined {
+  vertical-align: bottom;
+}
+.material-symbols-outlined:hover {
+  cursor: default;
+}
+button > .material-symbols-outlined:hover {
+  cursor: pointer;
+}
+.content-wrapper {
+    padding-top: 1rem;
+}
+.card.dashboard-header{
+    margin-bottom: 1rem;
+}
+#msg-panel {
+  position: fixed;
+  top: 65px;
+  left: 0;
+  z-index:9999;
+  width: 100%;
+  padding: 0 .625rem;
+}
+.slide-down-animation {
+    max-height: 0;
+    margin-bottom: .5rem;
+    overflow: hidden;
+    transition: max-height .5s ease-out;
+}
+.slide-down-animation .alert {
+  margin-bottom: 0!important;
+}
+.custom-msg > .alert > .float-right > button {
+  padding: 0 0.5rem!important;
+}
+</style>
+{% endblock %}
+
+{% block localstyles %}{% endblock %}
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block layout %}
+
+{% block navbar %}
+{% include 'green_diabetes_waste/navbar.html' %}
+{% endblock %}
+
+{% block alerts %}
+<div class="col-12" id="app-alert"></div>
+{% endblock %}
+
+<div class="page-content">
+
+    {% block content %}{% endblock %}
+    {% block footer %}{% endblock %}
+
+    {% block overlay %}
+    <div id="dialogoverlay"></div>
+    <div id="dialogbox">
+        <div>
+            <div id="dialogboxhead"></div>
+            <div id="dialogboxbody"></div>
+            <div id="dialogboxfoot"></div>
+        </div>
+    </div>
+    {% endblock %}
+
+</div>
+{% endblock %}
+
+{% block extrascripts %}
+<script type="text/javascript" src="{% static 'js/study-8974a864067.min.js' %}" class="view-script"></script>
+<script type="text/javascript">
+(function(){
+
+  $('[data-toggle="tooltip"]').tooltip();
+
+  $('.navbar .nav-menu .nav-item.dropdown *[data-toggle="dropdown"]').click(function(e) {
+    e.preventDefault();
+    if (!$(this).parent().hasClass('show')) {
+        ('.navbar').addClass('active');
+    } else {
+      $('.navbar').removeClass('active');
+    }
+  });
+
+  $(document).click(function() {
+    if($('.navbar .nav-menu .nav-item.dropdown.show').length === 0) {
+      $('.navbar').removeClass('active');
+    }
+  });
+
+  // header overlay
+  $('#header-overlay-control').click(function(e) {
+    e.preventDefault();
+    $('.navbar').removeClass('active');
+    //$('#content-wrapper').toggleClass('hide-sidebar');
+    $('.header-overlay').toggleClass('active');
+    if ($('.header-overlay').hasClass('active')) {
+        $('body').addClass('position-fixed-lg');
+    } else {
+        $('body').removeClass('position-fixed-lg');
+    }
+  });
+
+  $('#header-close').click(function(e) {
+    e.preventDefault();
+    $('.navbar').removeClass('active');
+    $('.header-overlay').removeClass('active');
+    $('body').removeClass('position-fixed-lg');
+  });
+
+  $('.dropdown-user .navbar-nav-link').click(function(e) {
+    e.preventDefault();
+    $('.navbar').removeClass('active');
+  });
+
+  // Overlay
+  $('.open-overlay').click(function(e) {
+    e.preventDefault();
+    //e.stopPropagation();
+    const overlay = $('#' + $(this).data('overlay') + '-overlay');
+    if (!!overlay) {
+      $('body').addClass('position-fixed');
+      overlay.addClass('on-overlay');
+    }
+  });
+
+  $('.close-overlay').click(function(e) {
+    e.preventDefault();
+    //e.stopPropagation();
+    const overlay = $('#' + $(this).data('overlay') + '-overlay');
+    if (!!overlay) {
+      $('body').removeClass('position-fixed');
+      overlay.removeClass('on-overlay');
+      if (!!overlay.get(0).querySelector('form')) {
+        const form = overlay.get(0).querySelector('form');
+        form.reset();
+        unRenderFormErrors(form);
+      }
+    }
+  });
+
+  // Select All
+  $('input[type=checkbox].select-all').click(function() {
+    if ($(this).data('select')) {
+      const check = $(this).is(':checked');
+      const selector = 'input[type=checkbox][data-select=' + $(this).data('select') + ']';
+      $(selector).prop('checked', check);
+    }
+  });
+
+
+  // Responsive table
+  const setTableOnSize = function () {
+    const container = document.querySelector('.table-rspnsv-container');
+    if (!!container) {
+      const width = container.offsetWidth;
+      container.querySelectorAll('table.table-rspnsv').forEach(e => {
+        const breakPoint = e.getAttribute('data-break-point');
+        if (!!breakPoint) {
+          if (width > breakPoint) {
+            classie.removeClass(e, 'table-break');
+          } else {
+            classie.addClass(e, 'table-break');
+          }
+        }
+      });
+    }
+  };
+
+  // Responsive table setup
+  setTableOnSize();
+  window.onresize = () => {
+    setTableOnSize();
+  };
+})();
+</script>
+{% endblock %}
+
+{% block localscripts %}{% endblock %}
+

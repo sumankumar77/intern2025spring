@@ -1,0 +1,446 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Log In{% endblock %}
+
+{% block localstyles %}
+<style>
+.page-bg {
+  background-color: #f1f5f8;
+}
+.form-group {
+  position: relative;
+}
+.ul-invalid-feedback {
+  font-size: 0.75rem;
+  color: #f86c6b;
+}
+input.form-control.ul-invalid {
+  color: #f86c6b;
+}
+@media (max-width: 576px) {
+  .auth-container {
+    padding: 0.5rem 0 0 0;
+    margin: 0;
+  }
+}
+</style>
+{% endblock %}
+
+{% block body_class %}app page-bg{% endblock %}
+{% block main_class %}app-body{% endblock %}
+
+{% block content %}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="auth-container col-xs-12 col-sm-10 col-md-9 col-lg-8 col-xl-6 mx-auto">
+        <div class="row mx-0">
+          <div class="col-md-5 auth-panel-left">
+            <div>
+              <div class="brand-col">
+                <div class="headline">
+                  <div class="chealth-logo text-center">
+                    <div class="logo-conn" alt="Connected" title="Connected"></div>
+                    <div class="logo-health" alt="Health" title="Health"></div>
+                  </div>
+                  <p>Login using social media to get quick access</p>
+                  <div class="row social-buttons">
+                    <div class="col-xs-4 col-sm-4 col-md-12">
+                      <a href="{% url 'social:begin' 'facebook' %}?next={{ request.GET.next }}"
+                         class="btn btn-block btn-facebook">
+                        <i class="icon ic-facebook"></i>
+                        <span class="d-md-down-none">Signin with facebook</span>
+                      </a>
+                    </div>
+                    <!--<div class="col-xs-4 col-sm-4 col-md-12">
+                        <a href="#" class="btn btn-block btn-twitter">
+                            <i class="icon ic-twitter"></i>
+                            <span class="d-md-down-none">Signin with twitter</span>
+                        </a>
+                    </div>-->
+                    <div class="col-xs-4 col-sm-4 col-md-12">
+                      <a href="{% url 'social:begin' 'google-oauth2' %}?next={{ request.GET.next }}"
+                         class="btn btn-block btn-google">
+                        <i class="icon ic-google"></i>
+                        <span class="d-md-down-none">Signin with google</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-7 auth-panel-right">
+            <div class="auth-login">
+              <div class="auth-panel panel-login text-center{% if action == 'login' %} active{% endif %}">
+                <div class="auth-heading">
+                  <h3 class="auth-title">Login to your account</h3>
+                  <p>Don't have an account?
+                    <a class="lnk-toggler" data-panel=".panel-signup" href="#panel-signup">Sign Up Free!</a>
+                  </p>
+                </div>
+                <div class="row">
+                  <div class="col-xs-12 col-sm-12">
+                    <form id="login-form" name="loginForm" class="loginForm" method="POST" autocomplete="off">
+                      {% csrf_token %}
+                      {% for hidden_field in login_form.hidden_fields %}
+                        {{ hidden_field }}
+                      {% endfor %}
+
+                      {% if login_form.non_field_errors %}
+                        <div class="alert alert-danger small" role="alert">
+                          {% for error in login_form.non_field_errors %}
+                            {% if 'Please enter a correct username and password' in error %}
+                              User does not exist or password is incorrect.
+                            {% else %}
+                              {{ error }}
+                            {% endif %}
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+
+                      {% for field in login_form.visible_fields %}
+                        <div class="form-group">
+                          {% if field.name == 'password' %}
+                            <div class="pwdMask">
+                          {% endif %}
+
+                          {% if login_form.is_bound %}
+                            {% if field.errors %}
+                              {% render_field field class="form-control input-underline ul-invalid" %}
+                            {% else %}
+                              {% render_field field class="form-control input-underline ul-valid" %}
+                            {% endif %}
+                          {% else %}
+                            {% render_field field class="form-control input-underline" %}
+                          {% endif %}
+
+                          <span class="focus-input"></span>
+                          {% if field.name == 'password' %}
+                            <span class="pwd-toggle" data-icon="visibility"></span>
+                          {% endif %}
+                          {% if login_form.is_bound %}
+                            {% for error in field.errors %}
+                              <div class="invalid-feedback">
+                                {% if 'Add another word or two' in error %}
+                                  Password is too weak.
+                                {% else %}
+                                  {{ error }}
+                                {% endif %}
+                              </div>
+                            {% endfor %}
+                          {% endif %}
+                          {% if field.name == 'password' %}
+                            </div>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                      <div class="row remember-row">
+                        <div class="col-xs-5">
+                          <label class="checkbox text-left d-none">
+                            <input type="checkbox" value="remember-me">
+                            <span class="label-text">Remember me</span>
+                          </label>
+                        </div>
+                        <div class="col-xs-7">
+                          <p class="forgotPwd">
+                            <a class="lnk-toggler" data-panel=".panel-forgot" href="#panel-forgot">
+                              Forgot password?
+                            </a>
+                          </p>
+                        </div>
+                      </div>
+                      <div class="form-group">
+                        <button class="btn btn-lg btn-primary btn-block" type="submit">Login</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              <div class="auth-panel panel-signup text-center{% if action == 'signup' %} active{% endif %}">
+                <div class="row">
+                  <div class="col-xs-12 col-sm-12">
+                    <div class="auth-heading mb-1">
+                      <h3 class="auth-title mt-1">Sign up for free!</h3>
+                    </div>
+                    <form id="signup-form" name="signupForm" class="signupForm" method="POST" autocomplete="off"
+                          novalidate>
+                      {% csrf_token %}
+                      {% for hidden_field in signup_form.hidden_fields %}
+                        {{ hidden_field }}
+                      {% endfor %}
+                      {% for field in signup_form.visible_fields %}
+                        <div class="form-group mb-1">
+                          {% if field.name == 'password1' or field.name == 'password2' %}
+                            <div class="pwdMask">
+                          {% endif %}
+                          {% render_field field class="form-control input-underline" placeholder=field.label %}
+                          <span class="focus-input"></span>
+                          {% if field.name == 'password1' or field.name == 'password2' %}
+                            <span class="pwd-toggle" data-icon="visibility"></span>
+                          {% endif %}
+                          {% if field.name == 'password1' or field.name == 'password2' %}
+                            </div>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                      <div class="form-group">
+                        <p class="term-policy text-muted small">I agree to the
+                          <a href="{% url 'privacy_policy' %}">privacy policy</a> and
+                          <a href="{% url 'terms_of_service' %}">terms of service</a>.</p>
+                      </div>
+                      <div class="form-group">
+                        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign up with
+                          email
+                        </button>
+                      </div>
+                    </form>
+                    <a class="lnk-toggler" data-panel=".panel-login" href="#panel-login">Already have an account?</a>
+                  </div>
+                </div>
+              </div>
+              <div class="auth-panel panel-forgot{% if action == 'recover' %} active{% endif %}">
+                <div class="row">
+                  <div class="col-xs-12 col-sm-12">
+                    <div class="auth-heading">
+                      <h3 class="auth-title">Recover your password</h3>
+                      <p>Fill in your e-mail address below and we will send you an email with further
+                        instructions.</p>
+                    </div>
+                    <form id="forget-form" name="forgetForm" class="forgetForm" action="{% url 'auth_password_reset' %}"
+                          method="POST" autocomplete="off" novalidate>
+                      {% csrf_token %}
+                      <div class="form-group">
+                        <input type="email" name="email" maxlength="254" placeholder="Email address"
+                               class="form-control input-underline" required="">
+                        <span class="focus-input"></span>
+                      </div>
+                      <div class="form-group">
+                        <button class="btn btn-lg btn-primary btn-block" type="submit">
+                          Recover your password
+                        </button>
+                      </div>
+                      <div class="form-group">
+                        <a class="lnk-toggler" data-panel=".panel-login" href="#panel-login">
+                          Already have an account?
+                        </a>
+                      </div>
+                      <div class="form-group">
+                        <a class="lnk-toggler" data-panel=".panel-signup" href="#panel-signup">
+                          Don't have an account?
+                        </a>
+                      </div>
+                      <div class="form-group">
+                        <p class="mb-1">Didn't receive your activation email?</p>
+                        <a class="lnk-toggler" data-panel=".panel-react" href="#panel-react">
+                          Resend activation email
+                        </a>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              <div class="auth-panel panel-signup-done">
+                <div class="row">
+                  <div class="col-xs-12 col-sm-12">
+                    <div class="auth-heading mt-5">
+                      <h3 class="auth-title">Activation Email Sent</h3>
+                      <p>Please confirm your email address to complete the registration.</p>
+                    </div>
+                    <div class="form-group mb-4">
+                      <p class="mb-1">Didn't receive your activation email?</p>
+                      <a class="lnk-toggler" data-panel=".panel-react" href="#panel-react">
+                        Resend activation email
+                      </a>
+                    </div>
+                    <div class="form-group">
+                      <a class="lnk-toggler" data-panel=".panel-login" href="#panel-login">
+                        Login to your account
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="auth-panel panel-reset-done">
+                <div class="row">
+                  <div class="col-xs-12 col-sm-12">
+                    <div class="auth-heading mt-5">
+                      <h3 class="auth-title">Password Reset Email Sent</h3>
+                      <p>We've emailed you instructions for setting your password.
+                        You should receive the email shortly!</p>
+                    </div>
+                    <div class="form-group mb-4">
+                      <p class="mb-1">Didn't receive your email?</p>
+                      <a class="lnk-toggler" data-panel=".panel-forgot" href="#panel-forgot">
+                        Resend password reset email
+                      </a>
+                    </div>
+                    <div class="form-group">
+                      <a class="lnk-toggler" data-panel=".panel-login" href="#panel-login">
+                        Login to your account
+                      </a>
+                    </div>
+                    <div class="form-group">
+                      <a class="lnk-toggler" data-panel=".panel-signup" href="#panel-signup">
+                        Don't have an account?
+                      </a>
+                    </div>
+                    <div class="form-group">
+                      <p class="mb-1">Didn't receive your activation email?</p>
+                      <a class="lnk-toggler" data-panel=".panel-react" href="#panel-react">
+                        Resend activation email
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="auth-panel panel-react{% if action == 'resend' %} active{% endif %}">
+                <div class="row">
+                  <div class="col-xs-12 col-sm-12">
+                    <div class="auth-heading mt-5">
+                      <h3 class="auth-title">Resend Activation Email</h3>
+                      <p>Type in the email address your registered the account. We'll send you a new activation email
+                        shortly.</p>
+                    </div>
+                    <form id="react-form" name="reactForm" class="reactForm" action="{% url 'auth_react' %}"
+                          method="POST" autocomplete="off" novalidate>
+                      {% csrf_token %}
+                      <div class="form-group">
+                        <input type="email" name="email" maxlength="254" placeholder="Email address"
+                               class="form-control input-underline" required="">
+                        <span class="focus-input"></span>
+                      </div>
+                      <div class="form-group">
+                        <button class="btn btn-lg btn-primary btn-block" type="submit">
+                          Send
+                        </button>
+                      </div>
+                      <div class="form-group">
+                        <a class="lnk-toggler" data-panel=".panel-login" href="#panel-login">
+                          Login to your account
+                        </a>
+                      </div>
+                      <div class="form-group">
+                        <a class="lnk-toggler" data-panel=".panel-signup" href="#panel-signup">
+                          Don’t have an account?
+                        </a>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+
+{% block localscripts %}
+<script>
+!function (a) {
+  "use strict";
+  a("html, body");
+  a(".lnk-toggler").on("click", function (t) {
+    t.preventDefault();
+    const e = a(this).data("panel");
+    a(".auth-panel.active").removeClass("active"), a(e).addClass("active")
+  }), a("#forget-lnk").on("click", function () {
+    a(".auth-login .nav-tabs").find("li").removeClass("active")
+  }), a(window).on("load", function () {
+    a(".square-block").fadeOut(), a("#preload-block").fadeOut("slow", function () {
+      a(this).remove()
+    })
+  })
+}(jQuery);
+</script>
+<script>
+(function () {
+
+  $('.pwd-toggle').on("click", function (t) {
+    t.preventDefault();
+    const e = $(this).closest('.pwdMask').find('input.form-control');
+    if ($(this).attr('data-icon') === 'visibility') {
+      $(e).attr("type", "text");
+      $(this).attr('data-icon', 'visibility_off');
+    } else{
+      $(e).attr("type", "password");
+      $(this).attr('data-icon', 'visibility');
+    }
+  });
+
+  $('#signup-form').on('submit', function (e) {
+    e.preventDefault();
+
+    const form = $(this);
+    const formData = new FormData();
+    const formParams = $(form).serializeArray();
+    $.each(formParams, function(i, val) {
+      formData.append(val.name, val.value);
+    });
+    $.ajax({
+      url: "{% url 'auth' %}",
+      type: 'POST',
+      data: formData,
+      async: true,
+      cache: false,
+      processData: false,
+      contentType: false,
+
+      success: function (json) {
+        $('div.ul-invalid-feedback').remove();
+        $(form).find('.ul-invalid').removeClass('.ul-invalid');
+        $(form).find('.ul-valid').removeClass('.ul-valid');
+        if (json.success) {
+          document.getElementById('signup-form').reset();
+          $('.auth-panel.active').removeClass('active');
+          $('.auth-panel.panel-signup-done').addClass('active');
+        } else {
+          $(form).find('input').each(function (i) {
+            if ($(this).attr("type") !== 'hidden') {
+              const inputName = $(this).attr("name");
+              if (inputName in json) {
+                $(this).addClass("ul-invalid");
+                for (let i = 0; i < json[inputName].length; i++) {
+                  if (json[inputName][i]['message'] !== '') {
+                    const feedback = document.createElement('div');
+                    feedback.classList.add('ul-invalid-feedback');
+                    feedback.innerHTML = json[inputName][i]['message'];
+                    this.closest('.form-group').appendChild(feedback);
+                  }
+                }
+              } else {
+                $(this).addClass("ul-valid");
+              }
+            }
+          });
+        }
+      },
+
+      error: function (xhr, errmsg, err) {
+        $.fn.animateMessage('We have encountered an error: ' + errmsg, 'error');
+        console.log(xhr.status + ": " + xhr.responseText);
+      }
+    });
+
+  });
+
+
+  $('#forget-form').AJAXFormSubmit("{% url 'auth_password_reset' %}", function () {
+    document.getElementById('forget-form').reset();
+    $('.auth-panel.active').removeClass('active');
+    $('.auth-panel.panel-reset-done').addClass('active');
+  });
+
+  $('#react-form').AJAXFormSubmit("{% url 'auth_react' %}", function () {
+    document.getElementById('react-form').reset();
+    $('.auth-panel.active').removeClass('active');
+    $('.auth-panel.panel-signup-done').addClass('active');
+  });
+
+}());
+</script>
+{% endblock %}

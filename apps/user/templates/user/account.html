@@ -1,0 +1,228 @@
+{% extends 'layout_bs5.html' %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+{% block title %}Account{% endblock %}
+
+{% block localstyles %}
+<style>
+.mw-xl {
+  max-width: 1200px;
+}
+.img-thumbnail.img-circle {
+  max-width: 100%;
+  height: auto;
+  border-radius: 50em;
+  padding: .25rem;
+}
+@media (max-width: 575.98px) {
+  .img-thumbnail.img-circle {
+    max-width: 200px
+  }
+}
+.btn-google {
+  background: #c32f10;
+}
+.btn.btn-block {
+  font-weight: 700;
+  color: #fff;
+}
+.flex-form {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+}
+.form-submit-group {
+  width: 100%;
+  padding: 0 .5rem;
+}
+.form-submit-group .form-submit {
+  float: right;
+}
+.select-container .select-option.selected {
+  background-color: #0b5ed7;
+  color: #fff;
+}
+.upload-file-label {
+  color: #fff;
+  border-color: #0d6efd;
+  line-height: 1.5;
+}
+.upload-file-label:hover {
+  color: #fff;
+  background-color: #0b5ed7;
+  border-color: #0a58ca;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid mw-xl px-0 py-5">
+  <div class="row">
+    <div class="col-sm-3">
+      <div class="row align-items-center">
+        <img id="profile-image"
+            {% if up_form.instance.image %}
+             src="{{ up_form.instance.image.url }}"
+            {% else %}
+             src="{% static 'main/avatar_2x.png' %}"
+            {% endif %}
+             class="img-circle img-thumbnail mx-auto" alt="avatar">
+      </div>
+      <div class="row">
+        <div class="col-12" id="action-container"></div>
+      </div>
+      </hr><br>
+
+      <!--<h5>Google</h5>
+      {% if google_login %}
+        {% if can_disconnect %}
+          <form method="post" action="{% url 'social:disconnect' 'google-oauth2' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-block btn-google">Disconnect from Google</button>
+          </form>
+        {% else %}
+          <button type="button" class="btn btn-block btn-google" disabled>Disconnect from Google</button>
+          <p class="small" style="color: red"><a href="{% url 'set_pw' %}">Define a password</a> before
+            disconnecting from Google.</p>
+        {% endif %}
+      {% else %}
+        <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-block btn-google">Connect to Google</a>
+      {% endif %}
+
+      <h5 class="mt-3">Twitter</h5>
+            {% if twitter_login %}
+            {% if can_disconnect %}
+            <form method="post" action="{% url 'social:disconnect' 'twitter' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-block btn-twitter">Disconnect from Twitter</button>
+            </form>
+            {% else %}
+            <button type="button" class="btn btn-block btn-twitter" disabled>Disconnect from Twitter</button>
+            <p class="small" style="color: red"><a href="{% url 'set_pw' %}">Define a password</a> before disconnecting from Twitter.</p>
+            {% endif %}
+            {% else %}
+            <a href="{% url 'social:begin' 'twitter' %}" class="btn btn-block btn-twitter">Connect to Twitter</a>
+            {% endif %}
+
+      <h5 class="mt-3">Facebook</h5>
+      {% if facebook_login %}
+        {% if can_disconnect %}
+          <form method="post" action="{% url 'social:disconnect' 'facebook' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-block btn-facebook">Disconnect from Facebook</button>
+          </form>
+        {% else %}
+          <button type="button" class="btn btn-block btn-facebook" disabled>Disconnect from Facebook</button>
+          <p class="small" style="color: red"><a href="{% url 'set_pw' %}">Define a password</a> before
+            disconnecting from Facebook.</p>
+        {% endif %}
+      {% else %}
+        <a href="{% url 'social:begin' 'facebook' %}" class="btn btn-block btn-facebook">Connect to Facebook</a>
+      {% endif %}
+      -->
+      <div class="mb-4"></div>
+
+    </div>
+
+    <div class="col-sm-9" id="form-container"></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block localscripts %}
+<script>
+(function () {
+
+  const time_zones = {{ timezones | safe }};
+
+  const onImageChangeCb = (json) => {
+    if (json.success && json.url) {
+      document.getElementById('profile-image').src = json.url;
+    }
+  };
+
+  const actionContainer = document.getElementById('action-container');
+  const imageForm = new app.Form(actionContainer, {
+    formClass: 'bs-form mt-3',
+    fieldData: [
+      {label: '', name: 'image', type: 'image', useChooseButton: true,
+        instantUpload: true, url: "{% url 'upload_image' %}",
+        onuploadCb: onImageChangeCb, labelClass: 'upload-file-label btn btn-primary w-100'},
+    ],
+    showSubmitButton: false,
+    ajax: false,
+    renderOnError: false,
+    resetOnSubmit: false,
+    animateResult: false,
+    cb: (json) => {
+      console.log(json);
+    }
+  });
+
+  const deleteBtn = app.createEl(actionContainer, 'button', {
+    class: 'btn btn-danger w-100 mt-3',
+    innerHTML: 'Delete'
+  });
+  deleteBtn.addEventListener('click', (e) => {
+    console.log('Delete clicked');
+    const formData = new FormData();
+    formData.append('delete', 'true');
+    app.API.XHR("{% url 'delete_image' %}", {
+      method: 'DELETE',
+      cb: onImageChangeCb
+    });
+  });
+
+  const formContainer = document.getElementById('form-container');
+  const initialUsername = "{{user_form.username.value}}",
+    initialEmail = "{{user_form.email.value}}",
+    //initialFirstName = "{{ up_form.firstname.value }}",
+    //initialLastName = "{{ up_form.lastname.value }}",
+    initialBirthDate = new Date("{{ up_form.birth_date.value }}"),
+    initialGender = "{{ up_form.gender.value }}",
+    initialAddr1 = "{{ up_form.address_line1.value }}",
+    initialAddr2 = "{{ up_form.address_line2.value }}",
+    initialCity = "{{ up_form.city.value }}",
+    initialState = "{{ up_form.state.value }}",
+    initialZipCode = "{{ up_form.code.value }}",
+    initialPhone = "{{ up_form.phone.value }}",
+    initialTimeZone =  "{{ up_form.time_zone.value }}";
+  const genderChoices = ['Female', 'Male', 'Unknown'];
+  const accountForm = new app.Form(formContainer, {
+    formClass: 'flex-form',
+    fieldWrapperClass: 'form-group col-12 col-lg-6 px-2 mb-3',
+    fieldData: [
+      {label: 'Username', name: 'username', type: 'text', initial: initialUsername, disabled: true},
+      {label: 'Email Address', name: 'email', type: 'text', initial: initialEmail, disabled: true},
+      //{label: 'First Name', name: 'firstname', type: 'text', initial: initialFirstName},
+      //{label: 'Last Name', name: 'lastname', type: 'text', initial: initialLastName},
+      {label: 'Birth Date', name: 'birth_date', type: 'date', initial: app.isValidDate(initialBirthDate) ? initialBirthDate : null, formatDate: app.toUsDate},
+      {label: 'Gender', name: 'gender', type: 'select', options: genderChoices, values: genderChoices.map(x => x.toUpperCase()), initialValue: initialGender},
+      {label: 'Address Line 1', name: 'address_line1', type: 'text', initial: initialAddr1},
+      {label: 'Address Line 2', name: 'address_line2', type: 'text', initial: initialAddr2},
+      {label: 'City', name: 'city', type: 'text', initial: initialCity},
+      {label: 'State', name: 'state', type: 'text', initial: initialState},
+      {label: 'Zip Code', name: 'code', type: 'text', initial: initialZipCode},
+      {label: 'Phone Number', name: 'phone', type: 'phone', initial: initialPhone, helpText: 'Only US phone numbers are allowed currently'},
+      {label: 'Timezone', name: 'time_zone', type: 'select', options: time_zones.map(x => x[0]),
+        preOptions: time_zones.map(x => app.formatUTCOffset(x[1])), optionsHeight: 500, initial: initialTimeZone},
+    ],
+    ajax: true,
+    submitButtonText: 'Update',
+    renderOnError: true,
+    resetOnSubmit: false,
+    animateResult: true,
+    cb: (json) => {
+      console.log(json);
+    }
+  });
+
+
+})();
+</script>
+{% endblock %}
+

@@ -1,0 +1,51 @@
+{% extends 'layout.html' %}
+{% load i18n %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+{% block title %}View{% endblock %}
+
+{% block main_class %}app-body{% endblock %}
+{% block content %}
+<div class="main" id="main">
+    <div class="container-fluid">
+        <div class="mail-option">
+
+            <div class="btn-group dropdown">
+                <button class="btn mini blue ll-dropdown-button" data-toggle="dropdown">
+                    Delete
+                    <span class="icon-xs ic-angle-down ll-dropdown-button ll-dropdown-arrow-down"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    {% if message_in_trash %}
+                    <li class="dropdown-item">
+                        <div role="button" id="move-this-to-inbox">
+                            <span class="icon-sm ic-envelope"></span> Inbox
+                        </div>
+                    </li>
+                    {% else %}
+                    <li class="dropdown-item">
+                        <div role="button" id="move-this-to-trash">
+                            <span class="icon-sm ic-trash"></span> Delete Permanently
+                        </div>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <form method="post" id="msg-id-form" class="d-none" novalidate>
+                {% csrf_token %}
+                <input type="text" id="message-id" name="message_id" value="{{message_id}}" disabled>
+            </form>
+
+        </div>
+
+        {% include 'msgs/view_body.html' %}
+    </div>
+</div>
+{% endblock %}
+
+{% block localscripts %}
+{% include 'msgs/view_scripts.html' %}
+{% endblock %}

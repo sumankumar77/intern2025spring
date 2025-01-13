@@ -1,0 +1,834 @@
+{% extends 'green_diabetes_waste/layout.html' %}
+{% load i18n %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+{% block title %}Home{% endblock %}
+
+{% block localstyles %}
+<style>
+.editable:hover,
+.edit-done:hover {
+  cursor: pointer;
+}
+.edit-done {
+  margin: 0.7rem 0 0 0.4rem!important;
+}
+table.table-rspnsv.table-break td div.btn {
+  height: 32px;
+}
+table.table-rspnsv.table-rspnsv-sm > tbody > tr > td {
+  padding-bottom: .5rem;
+  vertical-align: middle
+}
+table.table-rspnsv.table-rspnsv-sm > tbody > tr > td > label {
+  margin-bottom: 0;
+  word-spacing: 2px;
+}
+table.table-rspnsv.table-rspnsv-sm > tbody > tr > td > .btn {
+  padding: .1rem .5rem;
+}
+table.table-rspnsv.table-rspnsv-sm > tbody > tr > td > label > a {
+  color: #0d6efd;
+  max-width: 100%;
+  font-size: 0.8125rem;
+}
+table.table-rspnsv.table-rspnsv-sm > tbody > tr > td > label > a:hover {
+  text-decoration: none;
+}
+table.table-rspnsv.table-rspnsv-sm > tbody > tr > td > .input-group > input {
+  min-height: 1rem;
+  padding: 0 0.25rem;
+}
+table.table > thead > th,
+table.table > tbody > tr:nth-child(even) {
+  background-color: #fafafa;
+}
+table.table > tbody > tr:nth-child(odd) {
+  background-color: #fff;
+}
+.sdate-input .datepicker-frame tr {
+    background-color: #fff;
+    border: 0;
+    padding: 0;
+}
+.sdate-input .datepicker-frame td, .sdate-input .datepicker-frame th {
+  padding: 0;
+}
+.sdate-input .datepicker-frame th {
+  font: 0.875rem Tahoma;
+  font-weight: bold;
+}
+.sdate-input .dtpicker-frame.datepicker-frame {
+  height: 336px;
+}
+.sdate-input, .hsid-input{
+  min-height: calc(2.0625rem + 4px);
+}
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.overlay-form {
+  max-width: 768px;
+  margin-left: auto;
+  margin-right: auto
+}
+.w-spacing {
+  margin-left: 4px;
+}
+.datepicker-container {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  padding: .1rem;
+  margin-bottom: 0;
+  font-size: .875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #5c6873;
+  text-align: center;
+  white-space: nowrap;
+  background-color: #f0f3f5;
+  border: 1px solid #e4e7ea;
+  border-radius: .25rem;
+}
+.material-symbols-outlined.act-send:hover {
+  cursor: pointer
+}
+.text-wrap {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  -ms-word-break: break-all;
+  /* This is the dangerous one in WebKit, as it breaks things wherever */
+  word-break: break-all;
+  /* Instead use this non-standard one: */
+  word-break: break-word;
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+.input-group>select.form-control {
+  /*width: 100%!important;*/
+  min-width: 250px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+  <div class="content">
+
+    <div id="msg-panel">
+       <div id="msg-container"></div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            Green Diabetes Waste Dashboard
+            <ul class="card-header-menu-right">
+              {% if can_create %}
+              <li class="menu-item">
+                <button type="button" class="btn open-overlay px-0 py-0" data-overlay="add-pt" data-toggle="tooltip"
+                        data-placement="bottom" title="Add a participant">
+                  <span class="material-symbols-outlined">person_add</span>
+                </button>
+              </li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body table-rspnsv-container">
+            <table class="table table-rspnsv table-rspnsv-sm table-header-sticky font-sm" data-break-point="992">
+              <thead>
+              <tr>
+                <th colspan="2"><span class="no-select">User</span></th>
+                <th><span class="no-select">Study ID</span></th>
+                <th colspan="2"><span class="no-select">Email</span></th>
+                <th><span class="no-select">Phone</span></th>
+                <th><span class="no-select">Time Zone</span></th>
+                <th><span class="no-select">Start Date</span></th>
+                <th><span class="no-select">End Date</span></th>
+                <th><span class="no-select">Days In Study</span></th>
+                <th><span class="no-select">Last Email</span></th>
+                <th><span class="no-select">Last SMS</span></th>
+                <th><span class="no-select">This Email</span></th>
+                <th><span class="no-select">This SMS</span></th>
+                <th><span class="no-select">Delete</span></th>
+              </tr>
+              </thead>
+              <tbody id="user-table">
+              {% for pt, days_in_study, last_token, this_token, can_delete in user_rows %}
+                <tr data-pk="{{ pt.pk }}">
+                  <td data-label="User" colspan="2">
+                    <div class="input-group d-none">
+                      <input type="text" class="form-control" name="username-{{ pt.pk }}" id="id_username-{{ pt.pk }}"
+                          {% if pt.username %} value="{{ pt.username }}"{% endif %}>
+                      <div class="icon-sm-plain ic-checked edit-done"></div>
+                    </div>
+                    <label for="id_username-{{ pt.pk }}">
+                      <a id="id_anchor-{{ pt.pk }}" class="tc-text text-wrap"
+                         href="{% url 'gdw_view_user' uid=pt.pk %}">{{ pt.username }}</a>
+                      <span class="icon-sm-plain ic-edit editable" data-toggle="tooltip"
+                            data-placement="bottom" title="Double click to edit"></span>
+                    </label>
+                  </td>
+                  <td data-label="Study ID">
+                    <div class="input-group d-none">
+                      <input type="text" class="form-control" name="hsid-{{ pt.pk }}" id="id_hsid-{{ pt.pk }}"
+                          {% if pt.human_subject %} value="{{ pt.human_subject }}"{% endif %}>
+                      <div class="icon-sm-plain ic-checked edit-done"></div>
+                    </div>
+                    <label for="id_hsid-{{ pt.pk }}">
+                      {% if pt.human_subject %}
+                      <span class="tc-text text-wrap editable">{{ pt.human_subject }}</span>
+                      {% else %}
+                      <span class="icon-sm-plain ic-edit editable" data-toggle="tooltip"
+                            data-placement="bottom" title="Double click to edit"></span>
+                      {% endif %}
+                    </label>
+                  </td>
+                  <td data-label="Email" colspan="2">
+                    <div class="input-group d-none">
+                      <input type="text" class="form-control" name="email-{{ pt.pk }}" id="id_email-{{ pt.pk }}"
+                          {% if pt.email %} value="{{ pt.email }}"{% endif %}>
+                      <div class="icon-sm-plain ic-checked edit-done"></div>
+                    </div>
+                    <label for="id_email-{{ pt.pk }}">
+                      {% if pt.email %}
+                      <span class="tc-text text-wrap editable">{{ pt.email }}</span>
+                      {% else %}
+                      <span class="icon-sm-plain ic-edit editable" data-toggle="tooltip"
+                            data-placement="bottom" title="Double click to edit"></span>
+                      {% endif %}
+                    </label>
+                  </td>
+                  <td data-label="Phone">
+                    <div class="input-group d-none">
+                      <input type="text" class="form-control" name="phone-{{ pt.pk }}" id="id_phone-{{ pt.pk }}"
+                          {% if pt.phone %} value="{{ pt.phone }}"{% endif %}>
+                      <div class="icon-sm-plain ic-checked edit-done"></div>
+                    </div>
+                    <label for="id_phone-{{ pt.pk }}">
+                      {% if pt.phone %}
+                      <span class="tc-text text-wrap editable">{{ pt.phone }}</span>
+                      {% else %}
+                      <span class="icon-sm-plain ic-edit editable" data-toggle="tooltip"
+                            data-placement="bottom" title="Double click to edit"></span>
+                      {% endif %}
+                    </label>
+                  </td>
+                  <td data-label="Time Zone">
+                    <div class="input-group d-none">
+                      <input type="text" class="form-control" name="timezone-{{ pt.pk }}" id="id_timezone-{{ pt.pk }}"
+                          {% if pt.time_zone %} value="{{ pt.time_zone }}"{% endif %}>
+                      <div class="icon-sm-plain ic-checked edit-done"></div>
+                    </div>
+                    <label for="id_timezone-{{ pt.pk }}">
+                      {% if pt.time_zone %}
+                      <span class="tc-text text-wrap editable">{{ pt.time_zone }}</span>
+                      {% else %}
+                      <span class="icon-sm-plain ic-edit editable" data-toggle="tooltip"
+                            data-placement="bottom" title="Double click to edit"></span>
+                      {% endif %}
+                    </label>
+                  </td>
+                  <td data-label="Start Date">
+                    <div class="input-group d-none">
+                      <input type="text" class="form-control" name="sdate-{{ pt.pk }}" id="id_sdate-{{ pt.pk }}"
+                          {% if pt.start_date %} value="{{ pt.start_date|date:'m/d/Y' }}"{% endif %}>
+                      <div class="input-group-append">
+                          <div class="datepicker-container">
+                              <i class="icon ic-calendar" id="sdate-datepicker-{{ pt.pk }}"></i>
+                          </div>
+                      </div>
+                      <div class="icon-sm-plain ic-checked edit-done"></div>
+                    </div>
+                    <label for="id_sdate-{{ pt.pk }}">
+                      {% if pt.start_date %}
+                      <span class="tc-text text-wrap editable">{{ pt.start_date|date:'m/d/Y' }}</span>
+                      {% else %}
+                      <span class="icon-sm-plain ic-edit editable" data-toggle="tooltip"
+                            data-placement="bottom" title="Double click to edit"></span>
+                      {% endif %}
+                    </label>
+                  </td>
+                  <td data-label="End Date">
+                    <div class="input-group d-none">
+                      <input type="text" class="form-control" name="edate-{{ pt.pk }}" id="id_edate-{{ pt.pk }}"
+                          {% if pt.end_date %} value="{{ pt.end_date|date:'m/d/Y' }}"{% endif %}>
+                      <div class="input-group-append">
+                          <div class="datepicker-container">
+                              <i class="icon ic-calendar" id="edate-datepicker-{{ pt.pk }}"></i>
+                          </div>
+                      </div>
+                      <div class="icon-sm-plain ic-checked edit-done"></div>
+                    </div>
+                    <label for="id_edate-{{ pt.pk }}">
+                      {% if pt.end_date %}
+                      <span class="tc-text text-wrap editable">{{ pt.end_date|date:'m/d/Y' }}</span>
+                      {% else %}
+                      <span class="icon-sm-plain ic-edit editable" data-toggle="tooltip"
+                            data-placement="bottom" title="Double click to edit"></span>
+                      {% endif %}
+                    </label>
+                  </td>
+                  <td data-label="Days In Study">
+                    <div class="tc-text">{{ days_in_study }}</div>
+                  </td>
+                  <td data-label="Last Email">
+                    <div class="tc-text{% if last_token and last_token.submissiontoken_set.exists %} text-success{% elif not last_token or last_token.n_emails == 0 %} text-danger{% endif %}">
+                      {% if last_token and last_token.n_emails > 0 %}
+                        <span class="material-symbols-outlined">done</span>
+                      {% endif %}
+                        <span class="material-symbols-outlined act-send" data-toggle="tooltip"
+                              data-placement="bottom" title="Send Email">mail</span>
+                    </div>
+                  </td>
+                  <td data-label="Last SMS">
+                    <div class="tc-text{% if last_token and last_token.submissiontoken_set.exists %} text-success{% elif not last_token or last_token.n_sms_received == 0 %} text-danger{% endif %}">
+                      {% if last_token and last_token.n_sms_received > 0 %}
+                        <span class="material-symbols-outlined">done</span>
+                      {% endif %}
+                        <span class="material-symbols-outlined act-send" data-toggle="tooltip"
+                              data-placement="bottom" title="Send SMS">sms</span>
+                    </div>
+                  </td>
+                  <td data-label="This Email">
+                    <div class="tc-text{% if this_token and this_token.submissiontoken_set.exists %} text-success{% elif not this_token or this_token.n_emails == 0 %} text-danger{% endif %}">
+                      {% if this_token and this_token.n_emails > 0 %}
+                        <span class="material-symbols-outlined">done</span>
+                      {% endif %}
+                        <span class="material-symbols-outlined act-send" data-toggle="tooltip"
+                              data-placement="bottom" title="Send Email">mail</span>
+                    </div>
+                  </td>
+                  <td data-label="This SMS">
+                    <div class="tc-text{% if this_token and this_token.submissiontoken_set.exists %} text-success{% elif not this_token or this_token.n_sms_received == 0 %} text-danger{% endif %}">
+                      {% if this_token and this_token.n_sms_received > 0 %}
+                        <span class="material-symbols-outlined">done</span>
+                      {% endif %}
+                        <span class="material-symbols-outlined act-send" data-toggle="tooltip"
+                              data-placement="bottom" title="Send SMS">sms</span>
+                    </div>
+                  </td>
+                  <td data-label="Delete">
+                    {% if can_delete %}
+                    <button class="btn btn-danger act-del">delete</button>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<div id="add-pt-overlay" class="overlay">
+  <div class="card-holder">
+    <div class="card width-adjust">
+      <div class="card-header">
+        Add a new participant
+      </div>
+      <div class="card-body card-scrollbar">
+        <form id="add-pt-form" method="post" novalidate class="overlay-form">
+          {% csrf_token %}
+          <div class="alert alert-danger non-field-errors d-none" role="alert"></div>
+          {% for field in form.visible_fields %}
+          <div class="form-group field-wrapper mb-4">
+            <label class="ps-0 mt-1" for="{{ field.auto_id }}">
+              {% if field.name == 'human_subject' %}Study ID {% else %}{{ field.label }}{% endif %}
+            </label>
+            {% render_field field class="form-control" %}
+            <div class="invalid-feedback"></div>
+          </div>
+          {% endfor %}
+          <div class="text-right">
+            <button class="ibtn ibtn-primary">Submit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="close-overlay" data-overlay="add-pt">×</div>
+</div>
+
+{% endblock %}
+
+{% block localscripts %}
+<script type="text/javascript" src="{% static 'js/date-time-picker.js' %}" class="view-script"></script>
+<script type="text/javascript" src="{% static 'js/v2/main-419dd3f94fa.min.js' %}" class="view-script"></script>
+<script class="view-script" type="text/javascript">
+(function() {
+  window.TIMEZONES = {{ timezones | safe }};
+
+  const DATA_LABEL_USER = 'User',
+        DATA_LABEL_STUDY_ID = 'Study ID',
+        DATA_LABEL_EMAIL = 'Email',
+        DATA_LABEL_PHONE = 'Phone',
+        DATA_LABEL_TIMEZONE = 'Time Zone',
+        DATA_LABEL_START_DATE = 'Start Date',
+        DATA_LABEL_END_DATE = 'End Date',
+        DATA_LABEL_DAYS = 'Days In Study',
+        DATA_LABEL_LAST_EMAIL = 'Last Email',
+        DATA_LABEL_LAST_SMS = 'Last SMS',
+        DATA_LABEL_THIS_EMAIL = 'This Email',
+        DATA_LABEL_THIS_SMS = 'This SMS',
+        DATA_LABEL_DELETE = 'Delete';
+  const EDITABLE_SELECTOR = '.editable';
+  const EDIT_DONE_SELECTOR = '.edit-done';
+  let ORIGINAL_VALUE = null;
+  let ACTIVE_DATE_PICKER = null;
+  let ACTIVE_TIMEZONE_SELECT = null;
+
+  const getDateObj = function (isoDate) {
+    const ymd = isoDate.split('-');
+    return new Date(parseInt(ymd[0]), parseInt(ymd[1]) - 1, parseInt(ymd[2]));
+  };
+
+  // Responsive table
+  const setTableOnSize = function () {
+    const container = document.querySelector('.table-rspnsv-container');
+    if (!!container) {
+      const width = container.offsetWidth;
+      container.querySelectorAll('table.table-rspnsv').forEach(e => {
+        const breakPoint = e.getAttribute('data-break-point');
+        if (!!breakPoint) {
+          if (width > breakPoint) {
+            classie.removeClass(e, 'table-break');
+          } else {
+            classie.addClass(e, 'table-break');
+          }
+        }
+      });
+    }
+  };
+
+  const openEdit = function (td) {
+    td.querySelector('label').classList.add('d-none');
+    const inputGroup = td.querySelector('.input-group');
+    inputGroup.classList.remove('d-none');
+    td.querySelector(EDIT_DONE_SELECTOR).classList.remove('d-none');
+
+    const pk = td.closest('tr').getAttribute('data-pk');
+    const input = td.querySelector('input');
+    ORIGINAL_VALUE = input.value;
+    if (input.name.startsWith('sdate-') || input.name.startsWith('edate-')) {
+      const name = input.name.startsWith('sdate-') ? 'sdate' : 'edate';
+      ACTIVE_DATE_PICKER = new DateTimePicker(
+        input, {
+          'dtpickerId': name + '-datepicker-' + pk,
+          'frameId': name + '-datepicker-frame-' + pk,
+          'xPosition': 'left',
+          'firstdate': new Date(2021, 1, 1),
+          'initialdate': input.value === '' ? null : getDateObj(getISODateStr(input.value)),
+        }
+      );
+    }
+
+    if(input.name.startsWith('timezone-')) {
+      ACTIVE_TIMEZONE_SELECT = new app.TimezoneSelect(input, {
+        'selectName': 'timezone-select-' + pk,
+        'selectId': 'id_timezone-select-' + pk,
+        'timezones': TIMEZONES
+      });
+    }
+
+    window.onresize = () => {
+      setTableOnSize();
+    };
+  }
+
+  const updateDaysInStudy = function (td, startDate, endDate) {
+    let today = getToday();
+    endDate = endDate ? getISODateStr(endDate) : today;
+    endDate = endDate < today ? endDate : today;
+    td.closest('tr').querySelector('td[data-label="' + DATA_LABEL_DAYS + '"] > .tc-text').innerHTML =
+      dateDiff(getISODateStr(startDate), endDate) + 1;
+  };
+
+  const closeEdit = function (td) {
+    const inputGroup = td.querySelector('.input-group');
+    if (!inputGroup.classList.contains('d-none')) {
+      inputGroup.classList.add('d-none');
+      td.querySelector('label').classList.remove('d-none');
+      const input = td.querySelector('input');
+      const textEl = td.querySelector('label > .tc-text');
+      const iconEl = td.querySelector('label > .ic-edit.editable');
+      if (!!textEl) {
+        if (!!input.value) {
+          textEl.innerHTML = input.value;
+          if (input.id.startsWith('id_sdate-')) {
+            const endDateId = input.id.replace('id_sdate-', 'id_edate-');
+            const endDateInput = document.getElementById(endDateId);
+            if (!!endDateInput) updateDaysInStudy(td, input.value, endDateInput.value);
+          }
+          if (input.id.startsWith('id_edate-')) {
+            const startDateId = input.id.replace('id_edate-', 'id_sdate-');
+            const startDateInput = document.getElementById(startDateId);
+            if (!!startDateInput) updateDaysInStudy(td, startDateInput.value, input.value);
+          }
+        } else {
+          const newIconEl = createEl(textEl.parentNode, 'span', {
+            'class': 'icon-sm-plain ic-edit editable',
+            'data-toggle': 'tooltip',
+            'data-placement': 'bottom',
+            'data-original-title': 'Double click to edit'
+          });
+          textEl.remove();
+          newIconEl.addEventListener('dblclick', editableHandler);
+        }
+      } else if (!!iconEl && !!input.value) {
+        const newTextEl = createEl(iconEl.parentNode, 'span', {
+          'class': 'tc-text editable',
+          'innerHTML': input.value
+        });
+        iconEl.remove();
+        newTextEl.addEventListener('dblclick', editableHandler);
+        if (input.id.startsWith('id_sdate-')) updateDaysInStudy(td, input.value);
+      }
+      td.querySelector('.edit-done').classList.add('d-none');
+      if (!!ACTIVE_DATE_PICKER) ACTIVE_DATE_PICKER.destroy();
+      if (!!ACTIVE_TIMEZONE_SELECT) ACTIVE_TIMEZONE_SELECT.destroy();
+    }
+
+    window.onresize = () => {
+      setTableOnSize();
+    };
+  }
+
+  // Edit start date
+  const editableHandler = function () {
+    // Close all edit fields first
+    document.querySelectorAll('.editable').forEach(editable => {
+      closeEdit(editable.closest('td'));
+    });
+    openEdit(this.closest('td'));
+  };
+  $(EDITABLE_SELECTOR).dblclick(editableHandler);
+
+  const editDoneHandler = function (e) {
+    const td = this.closest('td');
+    const thisValue = td.querySelector('.input-group input').value;
+    if (thisValue !== ORIGINAL_VALUE) {
+      const tr = this.closest('tr');
+      const username = tr.querySelector('td[data-label="' + DATA_LABEL_USER + '"] input').value,
+            studyId = tr.querySelector('td[data-label="' + DATA_LABEL_STUDY_ID + '"] input').value,
+            email = tr.querySelector('td[data-label="' + DATA_LABEL_EMAIL + '"] input').value,
+            phone = tr.querySelector('td[data-label="' + DATA_LABEL_PHONE + '"] input').value,
+            timezone = tr.querySelector('td[data-label="' + DATA_LABEL_TIMEZONE + '"] input').value,
+            startDate = tr.querySelector('td[data-label="' + DATA_LABEL_START_DATE + '"] input').value,
+            endDate = tr.querySelector('td[data-label="' + DATA_LABEL_END_DATE + '"] input').value;
+
+      const pk = tr.getAttribute('data-pk');
+      const data = {
+        'pk': pk,
+        'username': username,
+        'human_subject': studyId,
+        'email': email,
+        'phone': phone,
+        'time_zone': timezone,
+        'start_date': startDate,
+        'end_date': endDate
+      };
+      const csrftoken = getCookie('csrftoken');
+      $.ajax({
+        url: window.location.href,
+        type: 'POST',
+        data: data,
+        headers: {'X-CSRFToken': csrftoken},
+        success: function (json) {
+          if (!!json.success) {
+            createCustomMessage(json.success, false);
+          } else {
+            createCustomMessage(json.error);
+            // Reverse input value
+            td.querySelector('.input-group input').value = ORIGINAL_VALUE;
+          }
+          //updateStartDateAndWeek(td);
+          closeEdit(td);
+        },
+        error: function (xhr, errmsg, err) {
+          $.fn.animateMessage('Connection Error');
+          console.log(xhr.status + ": " + xhr.responseText);
+        }
+      });
+    } else {
+      closeEdit(td);
+    }
+  };
+  $(EDIT_DONE_SELECTOR).click(editDoneHandler);
+
+  function createEl(parent, name, options = {}) {
+    // class is an HTML attribute, className is a DOM property
+    //const el = Object.assign(document.createElement(name), options);
+    const el = document.createElement(name);
+    Object.entries(options).forEach(([key,val]) => {
+      if (key === 'innerHTML') {
+        el.innerHTML = val;
+      } else {
+        el.setAttribute(key, val);
+      }
+    });
+    parent.appendChild(el);
+    return el;
+  }
+
+  // Table row operations
+  const createTextTd = function (parent, dataLabel, colspan, value) {
+    const td = createEl(parent, 'td', {
+      'data-label': dataLabel,
+    });
+    if (colspan !== 1) td.setAttribute('colspan', colspan);
+    const div = createEl(td, 'div', {
+      'class': 'tc-text',
+      'innerHTML': value
+    });
+  };
+
+  const createIconTd = function (parent, dataLabel, colspan, icon) {
+    const td = createEl(parent, 'td', {
+      'data-label': dataLabel,
+    });
+    if (colspan !== 1) td.setAttribute('colspan', colspan);
+    const div = createEl(td, 'div', {
+      'class': 'tc-text text-danger',
+    });
+    const span = createEl(div, 'span', {
+      'class': 'material-symbols-outlined act-send',
+      'data-toggle': 'tooltip',
+      'data-placement': 'bottom',
+      'title': 'Send ' + (icon === 'sms' ? 'SMS' : 'Email'),
+      'innerHTML': icon
+    });
+    span.addEventListener('click', sendActionHandler);
+  }
+
+  const createEditTd = function (parent, pk, dataLabel, colspan, name, value, hasAnchor = false, datePicker = false) {
+    //const docFrag = document.createDocumentFragment();
+    const td = createEl(parent, 'td', {
+      'data-label': dataLabel,
+    });
+    //if (dataLabel === DATA_LABEL_EMAIL) td.classList.add('text-ellipsis');
+    if (colspan !== 1) td.setAttribute('colspan', colspan);
+    //td.setAttribute('data-label', dataLabel);
+    const inputGroup = createEl(td, 'div', {'class': 'input-group d-none',});
+    const input = createEl(inputGroup, 'input', {
+      'type': 'text',
+      'class': 'form-control',
+      'name': name + '-' + pk,
+      'id': 'id_' + name + '-' + pk,
+      'value': value
+    });
+    if (datePicker === true) {
+      const append = createEl(inputGroup, 'div', {'class': 'input-group-append'});
+      const container = createEl(append, 'div', {'class': 'datepicker-container'});
+      const calendar = createEl(container, 'i', {
+        'class': 'icon ic-calendar',
+        'id': 'sdate-datepicker-' + pk
+      })
+    }
+    // TODO: check parent
+    const check = createEl(inputGroup, 'div', {'class': 'icon-sm-plain ic-checked edit-done d-none'})
+    check.addEventListener('click', editDoneHandler);
+    const label = createEl(td, 'label', {'for': 'id_' + name + '-' + pk});
+    const spanOptions = {
+      'class': 'icon-sm-plain ic-edit editable',
+      'data-toggle': 'tooltip',
+      'data-placement': 'bottom',
+      'title': 'Double click to edit'
+    };
+    let span;
+    if (hasAnchor === true) {
+      const anchor = createEl(label, 'a', {
+        'id': 'id_anchor-' + pk,
+        'class': 'tc-text text-wrap',  // TODO: more class to CSS
+        'href': "{% url 'gdw_view_user' uid='1111' %}".replace('1111', pk),
+        'innerHTML': value
+      });
+      span = createEl(label, 'span', spanOptions);
+      span.classList.add('w-spacing');
+      //span.addEventListener('dblclick', editableHandler);
+    } else if (!!value) {
+      span = createEl(label, 'span', {
+        'class': 'tc-text text-wrap editable',
+        'innerHTML': value
+      })
+      //span.addEventListener('dblclick', editableHandler);
+    } else {
+      span = createEl(label, 'span', spanOptions);
+    }
+    span.addEventListener('dblclick', editableHandler);
+    return td;
+  };
+
+  const createDelTd = function (parent, canDelete) {
+    const td = createEl(parent, 'td', {
+      'data-label': DATA_LABEL_DELETE,
+    });
+    if (canDelete === true) {
+      const btn = createEl(td, 'button', {
+        'class': 'btn btn-danger act-del',
+        'innerHTML': 'delete'
+      });
+      btn.addEventListener('click', deleteUserHandler);
+    }
+  }
+
+  function getToday() {
+    const today = new Date();
+    return today.getFullYear() + '-' +
+      (today.getMonth() + 1 > 9 ? today.getMonth() + 1 : '0' + (today.getMonth() + 1)) + '-' +
+      (today.getDate() > 9 ? today.getDate() : '0' + today.getDate());
+  }
+
+  // Add a new participant
+  const createTr = function (pk, username, studyId, startDate, email, phone, endDate, canDelete = true) {
+    const docFrag = document.createDocumentFragment();
+    const tr = createEl(docFrag, 'tr', {'data-pk': pk});
+    const days = !!startDate ? dateDiff(startDate, getToday()) : '';
+    const trOps = [[DATA_LABEL_USER, 'username', username, 2], [DATA_LABEL_STUDY_ID, 'hsid', studyId, 1],
+      [DATA_LABEL_EMAIL, 'email', email, 2], [DATA_LABEL_PHONE, 'phone', phone, 1],
+      [DATA_LABEL_TIMEZONE, 'timezone', 'America/New_York', 1],
+      [DATA_LABEL_START_DATE, 'sdate', startDate, 1], [DATA_LABEL_END_DATE, 'edate', endDate, 1],
+      [DATA_LABEL_DAYS, days, 1], [DATA_LABEL_LAST_EMAIL, 'mail', 1], [DATA_LABEL_LAST_SMS, 'sms', 1],
+      [DATA_LABEL_THIS_EMAIL, 'mail', 1], [DATA_LABEL_THIS_SMS, 'sms', 1], [DATA_LABEL_DELETE, '', '', 1]];
+    for (let i = 0; i < trOps.length; i++) {
+      const op = trOps[i];
+      if (op[0] === DATA_LABEL_USER) {
+        createEditTd(tr, pk, op[0], op[3], op[1], op[2], true);
+      } else if (op[0] === DATA_LABEL_START_DATE) {
+        createEditTd(tr, pk, op[0], op[3], op[1], op[2], false, true);
+      } else if (op[0] === DATA_LABEL_DAYS) {
+        createTextTd(tr, op[0], op[2], op[1]);
+      } else if (op[0] === DATA_LABEL_DELETE) {
+        createDelTd(tr, canDelete);
+      } else if ([DATA_LABEL_THIS_EMAIL, DATA_LABEL_THIS_SMS,
+        DATA_LABEL_LAST_EMAIL, DATA_LABEL_LAST_SMS].includes(op[0])) {
+        createIconTd(tr, op[0], op[2], op[1]);
+      } else {
+        createEditTd(tr, pk, op[0], op[3], op[1], op[2]);
+      }
+    }
+    return docFrag;
+  };
+  $('#add-pt-form').AJAXFormSubmit(window.location.href, function (json) {
+    if (json.hasOwnProperty('data')) {
+      //console.log(json);
+      const user = json['data'];
+      const pk = user['pk'],
+            username = user['username'],
+            studyId = user['study_id'] || '',
+            startDate = user['start_date'] || '',
+            email = user['email'] || '',
+            phone = user['phone'] || '',
+            endDate = user['end_date'] || '';
+      //console.log(pk, username, studyId, startDate, email, phone)
+      const href = "{% url 'gdw_view_user' uid='USER_ID' %}";
+      const userHref = href.replace('USER_ID', pk);
+      const tr = createTr(pk, username, studyId, startDate, email, phone, endDate);
+
+      //$('#user-table').append(rowUser);
+      document.getElementById('user-table').prepend(tr);
+
+      $('body').removeClass('position-fixed');
+      $('#add-pt-overlay').removeClass('on-overlay');
+      document.getElementById('add-pt-form').reset();
+    }
+  }, true, ()=>{}, true);
+
+
+  // delete user
+  const deleteUserHandler = function (e) {
+    const pk = $(e.target).closest('tr').data('pk');
+
+    const dialog = 'Are you sure you want to delete this user? Click "Yes" to continue.';
+    confirmSubmit(dialog, function () {
+      const csrftoken = getCookie('csrftoken');
+      $.ajax({
+        url: window.location.href,
+        type: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: {'pk': pk, 'delete': true},
+        success: function (json) {
+          if (json.success) {
+            createCustomMessage('Success', false);
+            $(e.target).closest('tr').remove();
+          } else {
+            createCustomMessage('Cannot delete user at this time.');
+          }
+        },
+        error: function (xhr, errmsg, err) {
+          $.fn.animateMessage('We have encountered an error: ' + errmsg, 'error');
+          console.log(xhr.status + ": " + xhr.responseText);
+        }
+      });
+    });
+  };
+
+  $('.act-del').click(deleteUserHandler);
+
+  const ACTION_SEND_SMS = 'send_sms',
+        ACTION_SEND_EMAIL = 'send_email';
+
+  const sendActionHandler = function (e) {
+    //console.log('clicked', e.target, e.target.innerHTML);
+    const icon = e.target.innerHTML;
+    const pk = e.target.closest('tr').getAttribute('data-pk');
+    const action = icon === 'sms' ? ACTION_SEND_SMS : (icon === 'mail' ? ACTION_SEND_EMAIL : null);
+    if (!!action) {
+      const which = e.target.closest('td').getAttribute('data-label').toUpperCase().includes('LAST') ? 'last' : 'this';
+      const csrftoken = getCookie('csrftoken');
+      $.ajax({
+        url: "{% url 'gdw_actions' %}",
+        type: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: {'action': action, 'which': which, 'pk': pk},
+        success: function (json) {
+          if (json.success) {
+            if (action === ACTION_SEND_EMAIL) {
+              e.target.closest('td').innerHTML = '\
+                <div class="tc-text">\
+                  <span class="material-symbols-outlined">done</span>\
+                  <span class="material-symbols-outlined act-send" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="Send Email">mail</span>\
+                </div>\
+              ';
+              // TODO: AddEventListener to act-send element
+            }
+            createCustomMessage(json.success, false);
+          } else {
+            createCustomMessage(json.error);
+          }
+        },
+        error: function (xhr, errmsg, err) {
+          $.fn.animateMessage('We have encountered an error: ' + errmsg, 'error');
+          console.log(xhr.status + ": " + xhr.responseText);
+        }
+      });
+    }
+  }
+
+  $('#user-table .act-send').click(sendActionHandler);
+
+
+}());
+</script>
+{% endblock %}

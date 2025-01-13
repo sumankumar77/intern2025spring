@@ -1,0 +1,5886 @@
+var app = window.app || {};
+
+app = (function() {
+  'use strict';
+
+  const tryParseJson = function (jsonString){
+    try {
+      const o = JSON.parse(jsonString);
+      // Handle non-exception-throwing cases:
+      // Neither JSON.parse(false) or JSON.parse(1234) throw errors, hence the type-checking,
+      // but... JSON.parse(null) returns null, and typeof null === "object",
+      // so we must check for that, too. Thankfully, null is falsey, so this suffices:
+      if (o && typeof o === "object") {
+        return o;
+      }
+    } catch (e) { }
+    return null;
+  };
+
+  const isEmpty = function (obj) {
+    for (const prop in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const isInteger = (s) => s == parseInt(s);
+
+  const isValidDate = function (date) {
+    return Object.prototype.toString.call(date) === '[object Date]' && !isNaN(date.getTime());
+  };
+
+  String.prototype.splice = function (idx, rem, str) {
+    return this.slice(0, idx) + str + this.slice(idx + Math.abs(rem));
+  };
+
+  const randomId = function () {
+    return Math.floor(Math.random() * 1000000000).toString();
+  };
+
+  function isNullOrUndefined(value) {
+    return value === undefined || value === null;
+  }
+
+  function hasValue(value) {
+    return !isNullOrUndefined(value) && (value !== '');
+  }
+
+  const isAsync = function (func) {
+    return func.constructor.name === "AsyncFunction";
+  };
+
+  const capitalize = function (s) {
+    if (typeof s !== 'string') return '';
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  function valuesOf(obj) {
+    return obj.values || Object.keys(obj).map(function (k) {
+      return obj[k]
+    });
+  }
+
+  function arrayCompare(_arr1, _arr2) {
+    if (!Array.isArray(_arr1) || !Array.isArray(_arr2) || _arr1.length !== _arr2.length) {
+      return false;
+    }
+    // .concat() to not mutate arguments
+    const arr1 = _arr1.concat().sort();
+    const arr2 = _arr2.concat().sort();
+    for (let i = 0; i < arr1.length; i++) {
+      if (arr1[i] !== arr2[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function getArrayElementIndexByKey(array, keyName, value) {
+    let index = null;
+    for (let i = 0; i < array.length; i++) {
+      if (array[i][keyName] === value) {
+        index = i;
+        break;
+      }
+    }
+    return index;
+  }
+
+  function getArrayElementByKey(array, keyName, value) {
+    const index = getArrayElementIndexByKey(array, keyName, value);
+    return index == null ? null : array[index];
+  }
+
+  function updateArrayData(array, newElems) {
+    for (let i = 0; i < newElems.length; i++) {
+      const newElem = newElems[i];
+      const idx = getArrayElementIndexByKey(array, 'pk', newElem['pk']);
+      if (idx != null) {
+        for (const prop in newElem) {
+          if (prop !== 'pk' && array[idx].hasOwnProperty(prop)) {
+            if (Array.isArray(array[idx][prop]) && Array.isArray(newElem[prop])) {
+              updateArrayData(array[idx][prop], newElem[prop]);
+            } else if (array[idx][prop] !== newElem[prop]) {
+              array[idx][prop] = newElem[prop];
+            }
+          }
+        }
+      } else {
+        array.push(newElem);
+      }
+    }
+  }
+
+  function removeArrayElementByKey(array, keyName, value) {
+    const index = getArrayElementIndexByKey(array, keyName, value);
+    return array.splice(index, 1);
+  }
+
+  const arrayRange = (start, stop, step = 1) =>
+    Array.from(
+      {length: (stop - start) / step + 1},
+      (value, index) => start + index * step
+    );
+
+  function classList(el) {
+    const list = el.classList;
+    return {
+      toggle: function (c) {
+        list.toggle(c);
+        return this;
+      },
+      add: function (c) {
+        list.add(c);
+        return this;
+      },
+      remove: function (c) {
+        list.remove(c);
+        return this;
+      }
+    };
+  }
+
+
+  function createEl(parent, name, options = {}) {
+    // class is an HTML attribute, className is a DOM property
+    //const el = Object.assign(document.createElement(name), options);
+    const el = document.createElement(name);
+    Object.entries(options).forEach(([key, val]) => {
+      if (key === 'innerHTML') {
+        el.innerHTML = val;
+      } else {
+        el.setAttribute(key, val);
+      }
+    });
+    parent.appendChild(el);
+    return el;
+  }
+
+  function insertAfter(newNode, existingNode) {
+    existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling);
+  }
+
+  const removeAllChildNodes = function (elem) {
+    while (elem.firstChild) {elem.firstChild.remove();}
+  }
+
+  // create custom message
+  const closeCustomMessage = function (msg) {
+    //const msg = document.querySelector('div.custom-msg');
+    if (!!msg) {
+      msg.style.maxHeight = 0;
+      setTimeout(function () {
+        msg.remove();
+      }, 500);
+    }
+  };
+
+  const createCustomMessage = function (content, danger = true, timeout = 10000, position = 'top') {
+    let container = document.getElementById('alert-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'alert-container';
+      classList(container).add('alert-panel').add(position);
+      document.body.appendChild(container);
+    }
+    const docFrag = document.createDocumentFragment();
+    const msg = createEl(docFrag, 'div', {'class': 'custom-msg slide-down-animation'});
+    const msgType = danger ? 'danger' : 'success';
+    const alert = createEl(msg, 'div', {'class': 'alert alert-' + msgType, 'innerHTML': content});
+    const btnHolder = createEl(alert, 'div', {'class': 'float-right'});
+    const btn = createEl(btnHolder, 'button', {'class': 'btn btn-outline-' + msgType, 'innerHTML': '×'});
+    container.appendChild(docFrag);
+    msg.style.maxHeight = msg.scrollHeight + 'px';
+    btn.addEventListener('click', e => closeCustomMessage(msg));
+    setTimeout(function () {
+      closeCustomMessage(msg);
+    }, timeout);
+  };
+
+  const getBaseUrl = function () {
+    return window.location.protocol + '/' + '/' + window.location.host + window.location.pathname;
+  };
+
+  /* Timezone Select */
+  function TimezoneSelect(input, options) {
+
+    // pytz.country_timezones['US']
+    const defaultTimezones = ['America/New_York', 'America/Detroit', 'America/Kentucky/Louisville',
+      'America/Kentucky/Monticello', 'America/Indiana/Indianapolis', 'America/Indiana/Vincennes',
+      'America/Indiana/Winamac', 'America/Indiana/Marengo', 'America/Indiana/Petersburg',
+      'America/Indiana/Vevay', 'America/Chicago', 'America/Indiana/Tell_City', 'America/Indiana/Knox',
+      'America/Menominee', 'America/North_Dakota/Center', 'America/North_Dakota/New_Salem',
+      'America/North_Dakota/Beulah', 'America/Denver', 'America/Boise', 'America/Phoenix',
+      'America/Los_Angeles', 'America/Anchorage', 'America/Juneau', 'America/Sitka', 'America/Metlakatla',
+      'America/Yakutat', 'America/Nome', 'America/Adak', 'Pacific/Honolulu'];
+
+    const t = this;
+    t.input = input;
+    t.timezones = defaultTimezones;
+    t.selectName = input.name + '__tz';
+    t.selectId = 'id_' + input.name + '__tz';
+
+    if (options) {t.config(options);}
+
+    t.init();
+  }
+
+  TimezoneSelect.prototype.config = function (s) {
+    this.timezones = s.timezones || this.timezones;
+    this.selectName = s.selectName || this.selectName;
+    this.selectId = s.selectId || this.selectId;
+  };
+
+  TimezoneSelect.prototype.init = function () {
+    this.input.classList.add('d-none');
+    const initial = this.input.value;
+    const docFrag = document.createDocumentFragment();
+    const options = this.timezones.map(tz => this.optionHTML(tz, initial));
+    this.select = createEl(docFrag, 'select', {
+      'name': this.selectName,
+      'class': 'form-control app-custom-select',
+      'id': this.selectId,
+      'innerHTML': options.join('')
+    });
+    this.input.insertAdjacentElement('afterend', this.select);
+    this.select.onchange = () => {
+      this.input.value = this.getOption();
+    };
+  };
+
+  TimezoneSelect.prototype.optionHTML = function (value, initialValue) {
+    return '<option value="' + value + '"' + (value === initialValue ? ' selected' : '') + '>' + value + '</option>';
+  };
+
+  TimezoneSelect.prototype.getOption = function () {
+    return this.select.value;
+  };
+
+  TimezoneSelect.prototype.destroy = function () {
+    this.input.value = this.getOption();
+    this.select.remove();
+  };
+  /* Timezone Input */
+
+
+  /* Search Select */
+  function SearchSelect(input, options) {
+    const t = this;
+    t.input = input;
+    t.config(options);
+    t.init();
+  }
+
+  SearchSelect.prototype.config = function (s) {
+    if (!s.options) {throw new Error('Options are required!');}
+    this.options = s.options;
+    this.optionValues = s.optionValues;
+    this.selectWidth = s.selectWidth || '250px';
+    this.optionsHeight = s.optionsHeight || '200px';
+    this.optionHeight = s.optionHeight || '30px';
+    this.hideDropdownSearch = s.hideDropdownSearch || false;
+    this.multiSelect = s.multiSelect || false;
+  };
+
+  SearchSelect.prototype.optionHTML = function (value, initialValue, idx) {
+    const realValue = !!this.optionValues && idx < this.optionValues.length ? this.optionValues[idx] : null;
+    const inputHTML = this.multiSelect ? '<label><input type="checkbox" class="form-check-input"></label>' : '';
+    const optionClass = 'select-option' + (value === initialValue ? ' selected active' : '');
+    const selected = value === initialValue ? 'true' : 'false';
+    const style = `height: ${this.optionHeight};`;
+    const dataValue = realValue ? ' ' + 'data-value="${realValue}"' : '';
+    return `<div class="${optionClass}" role="option" aria-selected="${selected}" aria-disabled="false" style="${style}"${dataValue}><span class="select-option-text">${inputHTML}${value}</span></div>`;
+  };
+
+  SearchSelect.prototype.getSelectedValues = function () {
+    if (this.multiSelect) {
+      let result = [];
+      const selectedOptions = this.select.querySelectorAll('.select-option.selected');
+      for (let i = 0; i < selectedOptions.length; i++) {
+        if (selectedOptions[i].hasAttribute('data-value')) {
+          result.push(selectedOptions[i].getAttribute('data-value'));
+        } else {
+          result.push(selectedOptions[i].querySelector('.select-option-text').textContent);
+        }
+      }
+      return result;
+    } else {
+      const selected = this.select.querySelector('.select-option.selected');
+      const result = !!selected ?
+        (selected.hasAttribute('data-value') ?
+          selected.getAttribute('data-value') :
+          selected.querySelector('.select-option-text').textContent) :
+        '';
+      return [result];
+    }
+  };
+
+  SearchSelect.prototype.getSelectedTexts = function () {
+    if (this.multiSelect) {
+      let result = [];
+      const selectedOptions = this.select.querySelectorAll('.select-option.selected .select-option-text');
+      for (let i = 0; i < selectedOptions.length; i++) {
+        result.push(selectedOptions[i].textContent);
+      }
+      return result;
+    } else {
+      const selected = this.select.querySelector('.select-option.selected .select-option-text');
+      const result = !!selected ? selected.textContent : '';
+      return [result];
+    }
+  };
+
+  SearchSelect.prototype.getSelectedValue = function () {
+    const result = this.getSelectedValues();
+    return result.join(', ');
+  };
+
+  SearchSelect.prototype.getSelectedText = function () {
+    const result = this.getSelectedTexts();
+    return result.join(', ');
+  };
+
+  SearchSelect.prototype.init = function () {
+    const t = this;
+    const initial = t.input.value;
+    const docFrag = document.createDocumentFragment();
+    const options = t.options.map((val, idx) => t.optionHTML(val, initial, idx));
+    this.select = createEl(docFrag, 'div', {
+      'class': 'select-dropdown-container',
+      'style': 'min-width: ' + t.selectWidth
+    });
+    const dropdown = createEl(t.select, 'div', {'class': 'select-dropdown'});
+    const ig = createEl(dropdown, 'div', {'class': 'input-group'});
+    t.search = createEl(ig, 'input', {
+      'type': 'text',
+      'role': 'searchbox',
+      'placeholder': 'Search...',
+      'class': 'form-control select-filter-input'
+    });
+    if (t.hideDropdownSearch) ig.className = 'd-none';
+    const wrapper = createEl(dropdown, 'div', {
+      'class': 'select-options-wrapper',
+      'style': 'max-height: ' + t.optionsHeight + ';'
+    });
+    t.optionList = createEl(wrapper, 'div', {
+      'class': 'select-option-list',
+      'innerHTML': options.join('')
+    });
+
+    t.input.insertAdjacentElement('afterend', t.select);
+    document.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (t.select.contains(e.target)) {
+        const selectOption = e.target.closest('.select-option');
+        if (!!selectOption) {
+          const optionText = selectOption.querySelector('.select-option-text');
+          if (t.multiSelect) {
+            if (selectOption.classList.contains('selected')) {
+              selectOption.classList.remove('selected');
+              selectOption.querySelector("input.form-check-input").checked = false;
+            } else {
+              selectOption.classList.add('selected');
+              selectOption.querySelector("input.form-check-input").checked = true;
+            }
+            t.input.value = t.getSelectedText();
+          } else {
+            t.input.value = optionText.textContent;
+            t.reset();
+            selectOption.classList.add('selected');
+            t.hide();
+          }
+        }
+      } else if (t.input.contains(e.target)) {
+        if (!!t.select) t.show();
+      } else {
+        t.hide();
+      }
+    });
+
+    t.input.onfocus = () => {
+      if (!!t.select) t.show();
+    }
+
+    // Search event
+    if (!t.hideDropdownSearch) {
+      t.search.addEventListener('input', (e) => t.filterOptions(e.target.value));
+    }
+    t.input.addEventListener('input', (e) => {
+      t.filterOptions(e.target.value)
+    });
+
+  };
+
+  SearchSelect.prototype.filterOptions = function (searchValue) {
+    const t = this;
+    t.optionList.querySelectorAll('.select-option-text').forEach((element) => {
+      if (!element.innerHTML.includes(searchValue)) {
+        element.parentElement.classList.add('d-none');
+      } else {
+        element.parentElement.classList.remove('d-none');
+      }
+    });
+  }
+
+  SearchSelect.prototype.reset = function () {
+    this.select.querySelectorAll('.select-option').forEach((element) => {
+      element.classList.remove('selected');
+    });
+  }
+
+  SearchSelect.prototype.show = function () {
+    this.select.classList.add('active');
+  }
+
+  SearchSelect.prototype.hide = function () {
+    this.select.classList.remove('active');
+    if (typeof this.input.onchange === 'function') this.input.onchange();
+  }
+
+  SearchSelect.prototype.destroy = function () {
+    this.input.value = this.getSelectedText();
+    this.select.remove();
+  };
+  /* Search Select ends */
+
+  /* Dropdown Select */
+  /*
+  function DropdownSelect(select, options = {}) {
+    const t = this;
+    t.host = select;
+    t.config(options);
+    t.init();
+  }
+
+  DropdownSelect.prototype.config = function (s) {
+    this.selectWidth = s.selectWidth || '250px';
+    this.optionsHeight = s.optionsHeight || '200px';
+    this.optionHeight = s.optionHeight || '30px';
+    this.hideDropdownSearch = s.hideDropdownSearch || false;
+    this.multiSelect = s.multiSelect || false;
+  };
+
+  DropdownSelect.prototype.optionHTML = function (value, initialValue, idx) {
+    const inputHTML = this.multiSelect ? '<label><input type="checkbox" class="form-check-input"></label>' : '';
+    const optionClass = 'select-option' + (value === initialValue ? ' selected active' : '');
+    const selected = value === initialValue ? 'true' : 'false';
+    //const style = `height: ${this.optionHeight};`;
+    const dataValue = ` data-value="${value}"`;
+    return `<li class="${optionClass}" role="option" aria-selected="${selected}" aria-disabled="false" ${dataValue}><span class="select-option-text">${inputHTML}${this.options[idx]}</span></li>`;
+  };
+
+  DropdownSelect.prototype.getSelectedValues = function () {
+    if (this.multiSelect) {
+      let result = [];
+      const selectedOptions = this.optionList.querySelectorAll('.select-option.selected');
+      for (let i = 0; i < selectedOptions.length; i++) {
+        if (selectedOptions[i].hasAttribute('data-value')) {
+          result.push(selectedOptions[i].getAttribute('data-value'));
+        } else {
+          result.push(selectedOptions[i].querySelector('.select-option-text').textContent);
+        }
+      }
+      return result;
+    } else {
+      const selected = this.optionList.querySelector('.select-option.selected');
+      const result = !!selected ?
+        (selected.hasAttribute('data-value') ?
+          selected.getAttribute('data-value') :
+          selected.querySelector('.select-option-text').textContent) :
+        '';
+      return [result];
+    }
+  };
+
+  DropdownSelect.prototype.getSelectedTexts = function () {
+    if (this.multiSelect) {
+      let result = [];
+      const selectedOptions = this.optionList.querySelectorAll('.select-option.selected .select-option-text');
+      for (let i = 0; i < selectedOptions.length; i++) {
+        result.push(selectedOptions[i].textContent);
+      }
+      return result;
+    } else {
+      const selected = this.optionList.querySelector('.select-option.selected .select-option-text');
+      const result = !!selected ? selected.textContent : '';
+      return [result];
+    }
+  };
+
+  DropdownSelect.prototype.getSelectedValue = function () {
+    const result = this.getSelectedValues();
+    return result.join(', ');
+  };
+
+  DropdownSelect.prototype.getSelectedText = function () {
+    const result = this.getSelectedTexts();
+    return result.join(', ');
+  };
+
+  DropdownSelect.prototype.init = function () {
+    const t = this;
+    t.values = [];  // option values
+    t.options = [];  // option text
+    const origOptions = t.host.querySelectorAll('option');
+    for (let i = 0; i < origOptions.length; i++) {
+      t.values.push(origOptions[i].getAttribute('value'));
+      t.options.push(origOptions[i].textContent);
+    }
+
+    const docFrag = document.createDocumentFragment();
+    t.selectWrapper = createEl(docFrag, 'div', {
+      'class': 'select-wrapper',
+      //'style': 'min-width: ' + t.selectWidth
+    });
+    const caret = createEl(t.selectWrapper, 'span', {'class': 'caret', 'innerHTML': '▼'});
+    t.selectInput = createEl(t.selectWrapper, 'input', {
+      'class': 'select-dropdown form-control',
+      'readonly': 'true',
+      'type': 'text'
+    });
+    t.dropdownContent = createEl(t.selectWrapper, 'div', {'class': 'dropdown-content w-100'});
+    //const dropdown = createEl(t.dropdownContent, 'div', {'class': 'select-dropdown'});
+    const dropdownSearch = createEl(t.dropdownContent, 'div', {'class': 'dropdown-search'});
+    t.dropdownSearchInput = createEl(dropdownSearch, 'input', {
+      'type': 'text',
+      'role': 'searchbox',
+      'placeholder': 'Search...',
+      'class': 'w-100 select-filter-input'
+    });
+    if (t.hideDropdownSearch) dropdownSearch.className = 'd-none';
+
+    const initial = t.host.value;
+    const options = t.values.map((val, idx) => t.optionHTML(val, initial, idx));
+    t.optionList = createEl(t.dropdownContent, 'ul', {
+      'class': 'select-option-list',
+      'style': 'max-height: ' + t.optionsHeight + ';',
+      'innerHTML': options.join('')
+    });
+    //t.optionList = createEl(t.optionWrapper, 'ul', {
+    //  'class': 'select-option-list',
+    //  'innerHTML': options.join('')
+    //});
+
+    t.host.insertAdjacentElement('afterend', t.selectWrapper);
+    document.addEventListener('click', (e) => {
+      if (!!t.dropdownContent && t.dropdownContent.contains(e.target)) {
+        e.stopPropagation();
+        const selectOption = e.target.closest('.select-option');
+        if (!!selectOption) {
+          const optionText = selectOption.querySelector('.select-option-text');
+          if (t.multiSelect) {
+            if (selectOption.classList.contains('selected')) {
+              selectOption.classList.remove('selected');
+              selectOption.querySelector("input.form-check-input").checked = false;
+            } else {
+              selectOption.classList.add('selected');
+              selectOption.querySelector("input.form-check-input").checked = true;
+            }
+            t.selectInput.value = t.getSelectedText();
+            t.host.value = t.getSelectedText();
+            const event = new Event('change', {'bubbles': true});
+            t.host.dispatchEvent(event);
+          } else {
+            t.selectInput.value = optionText.textContent;
+            t.host.value = selectOption.getAttribute('data-value');
+            t.reset();
+            selectOption.classList.add('selected');
+            t.hide();
+            const event = new Event('change', {'bubbles': true});
+            t.host.dispatchEvent(event);
+          }
+        }
+      } else if (t.selectInput.contains(e.target)) {
+        e.stopPropagation();
+        if (t.dropdownContent.classList.contains('active')) {
+          t.hide();
+        } else {
+          t.show();
+        }
+      } else {
+        t.hide();
+      }
+    });
+
+    // Search event
+    if (!t.hideDropdownSearch) {
+      t.dropdownSearchInput.addEventListener('input', (e) => t.filterOptions(e.target.value));
+    }
+    t.dropdownSearchInput.addEventListener('input', (e) => {
+      t.filterOptions(e.target.value)
+    });
+
+  };
+
+  DropdownSelect.prototype.filterOptions = function (searchValue) {
+    const t = this;
+    t.optionList.querySelectorAll('.select-option-text').forEach((element) => {
+      if (!element.innerHTML.includes(searchValue)) {
+        element.parentElement.classList.add('d-none');
+      } else {
+        element.parentElement.classList.remove('d-none');
+      }
+    });
+  }
+
+  DropdownSelect.prototype.reset = function () {
+    this.dropdownContent.querySelectorAll('.select-option').forEach((element) => {
+      element.classList.remove('selected');
+    });
+  }
+
+  DropdownSelect.prototype.show = function () {
+    this.dropdownContent.classList.add('active');
+  }
+
+  DropdownSelect.prototype.hide = function () {
+    this.dropdownContent.classList.remove('active');
+  }
+
+  DropdownSelect.prototype.destroy = function () {
+    this.host.value = this.getSelectedText();
+    this.selectWrapper.remove();
+  };
+  */
+  /* Dropdown Select ends */
+
+
+  // ** FADE OUT FUNCTION **
+  function fadeOut(el) {
+    el.style.opacity = 1;
+    (function fade() {
+      if ((el.style.opacity -= .1) < 0) {
+        el.style.display = "none";
+      } else {
+        requestAnimationFrame(fade);
+      }
+    })();
+  }
+
+  // ** FADE IN FUNCTION **
+  function fadeIn(el, display) {
+    el.style.opacity = 0;
+    el.style.display = display || "block";
+    (function fade() {
+      let val = parseFloat(el.style.opacity);
+      if (!((val += .1) > 1)) {
+        el.style.opacity = val;
+        requestAnimationFrame(fade);
+      }
+    })();
+  }
+
+  // Pass in the objects to merge as arguments.
+  // For a deep extend, set the first argument to `true`.
+  const extend = function () {
+    // Variables
+    let extended = {};
+    let deep = false;
+    let i = 0;
+    const length = arguments.length;
+
+    // Check if a deep merge
+    if (Object.prototype.toString.call(arguments[0]) === '[object Boolean]') {
+      deep = arguments[0];
+      i++;
+    }
+
+    // Merge the object into the extended object
+    const merge = function (obj) {
+      for (let prop in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+          // If deep merge and property is an object, merge properties
+          if (deep && Object.prototype.toString.call(obj[prop]) === '[object Object]') {
+            extended[prop] = extend(true, extended[prop], obj[prop]);
+          } else {
+            extended[prop] = obj[prop];
+          }
+        }
+      }
+    };
+
+    // Loop through each object and conduct a merge
+    for (; i < length; i++) {
+      const obj = arguments[i];
+      merge(obj);
+    }
+
+    return extended;
+  };
+
+
+  var urlAddParams = function (url, keyVals) {
+    const a = document.createElement('a');
+    a.href = url;
+    for (const key in keyVals) {
+      const value = keyVals[key];
+      let param = encodeURIComponent(key);
+      param += (value ? "=" + encodeURIComponent(value) : "");
+      a.search += (a.search ? "&" : "") + param;
+    }
+    return a.href;
+  }
+
+  /**
+   * Add a URL parameter (or modify if already exists)
+   * @param {string} url
+   * @param {string} param the key to set
+   * @param {string} value
+   */
+  var urlAddOrReplaceParam = function (url, param, value) {
+    param = encodeURIComponent(param);
+    const r = "([&?]|&amp;)" + param + "\\b(?:=(?:[^&#]*))*";
+    const a = document.createElement('a');
+    const regex = new RegExp(r);
+    const str = param + (value ? "=" + encodeURIComponent(value) : "");
+    a.href = url;
+    const q = a.search.replace(regex, "$1" + str);
+    if (q === a.search) {
+      a.search += (a.search ? "&" : "") + str;
+    } else {
+      a.search = q;
+    }
+    return a.href;
+  }
+
+  function isIsoDate(s) {
+    const pattern = /^(\d{4})-(\d{2})-(\d{2})$/;
+    return pattern.test(s);
+  }
+
+  function isUsDate(s) {
+    const pattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+    return pattern.test(s);
+  }
+
+  function isJsDate(dt) {
+    return dt instanceof Date;
+  }
+
+  // TODO: due to timezone issue, it's not correct
+  const toJsDate = function (date) {
+    if (date instanceof Date) {
+      return date;
+    } else if (isIsoDate(date)) {
+      const ymd = date.split('-');
+      return new Date(parseInt(ymd[0]), parseInt(ymd[1]) - 1, parseInt(ymd[2]));
+    } else if (isUsDate(date)) {
+      const mdy = date.split('/');
+      return new Date(parseInt(mdy[2]), parseInt(mdy[0]) - 1, parseInt(mdy[1]));
+    } else {
+      console.error('Unknown date', date);
+      return null;
+    }
+  };
+
+  function padStart2(number) {
+    return number.toString().padStart(2, '0');
+  }
+
+  function toUsDate(date) {
+    if (date instanceof Date) {
+      return `${padStart2(date.getMonth() + 1)}/${padStart2(date.getDate())}/${date.getFullYear()}`;
+    } else if (isIsoDate(date)) {
+      let ymd = date.split('-');
+      return ymd[1] + '/' + ymd[2] + '/' + ymd[0];
+    } else if (isUsDate(date)) {
+      return date;
+    } else {
+      console.error('Unknown date', date);
+      return null;
+    }
+  }
+
+  function toIsoDate(date) {
+    if (date instanceof Date) {
+      return `${date.getFullYear()}-${padStart2(date.getMonth() + 1)}-${padStart2(date.getDate())}`;
+    } else if (isUsDate(date)) {
+      let mdy = date.split('/');
+      return mdy[2] + '-' + mdy[0] + '-' + mdy[1];
+    } else if (isIsoDate(date)) {
+      return date;
+    } else {
+      return null;
+    }
+  }
+
+
+  //Regular Expressions for Time
+  // HH:MM 12-hour format, optional leading 0, mandatory meridiems (AM/PM)
+  const RE_TIME_HHMM_12 = /((1[0-2]|0?[1-9]):([0-5][0-9])\s*([AaPp][Mm]))/;
+  const RE_TIME_HHMMSS_12 = /((1[0-2]|0?[1-9]):([0-5][0-9]):([0-5][0-9])\s*([AaPp][Mm]))/;
+  // HH:MM 24-hour format, optional leading 0
+  const RE_TIME_HHMM_24 = /^([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
+  // HH:MM:SS 24-hour format with leading 0
+  const RE_TIME_HHMMSS_24 = /(?:[01]\d|2[0-3]):(?:[0-5]\d):(?:[0-5]\d)/;
+
+  function toUsTime(date) {
+    if (date instanceof Date) {
+      return (date.getHours() > 12 ? date.getHours() - 12 : (date.getHours() === 0 ? '12' : date.getHours())) + ':' + padStart2(date.getMinutes()) + (date.getHours() > 11 ? ' PM' : ' AM');
+    } else if (typeof date.match === 'function') {
+      if (!!date.match(RE_TIME_HHMM_12)) {
+        return date.toUpperCase();
+      } else if (!!date.match(RE_TIME_HHMM_24)) {
+        const hm = date.split(':');
+        return (hm[0] > 12 ? parseInt(hm[0]) - 12 : ((hm[0] === 0) ? '12' : hm[0])) + ':' + hm[1] + (hm[0] > 11 ? ' PM' : ' AM');
+      } else if (!!date.match(RE_TIME_HHMMSS_12)) {
+        return date.toUpperCase();
+      } else if (!!date.match(RE_TIME_HHMMSS_24)) {
+        const hms = date.split(':');
+        return (hms[0] > 12 ? parseInt(hms[0]) - 12 : ((hms[0] === 0) ? '12' : hms[0])) + ':' + hms[1] + ':' + hms[2] + (hms[0] > 11 ? ' PM' : 'AM');
+      }
+    }
+    console.log('[toUsTime]Unknown format:', date);
+    return date;
+  }
+
+  function toIsoTime(date) {
+    if (date instanceof Date) {
+      return `${padStart2(date.getHours())}:${padStart2(date.getMinutes())}`;
+    } else if ((typeof date.match === 'function') && (!!date.toUpperCase().match(/\d{2}:\d{2}\s*[AP]M/))) {
+      let hm = date.match(/\d{2}:\d{2}/)[0].split(':');
+      let period = date.toUpperCase().indexOf('AM') > 0 ? 'AM' : 'PM';
+      return (period === 'PM' ? (hm[0] == 12 ? 12 : parseInt(hm[0]) + 12) : (hm[0] == 12 ? '00' : hm[0])) + ':' + hm[1];
+    } else if ((typeof date.match === 'function') && (!!date.match(/\d{2}:\d{2}/))) {
+      return date;
+    } else {
+      return null;
+    }
+  }
+
+
+  const getTimeZoneStandard = function (date) {
+    // Time zone is even related to time.
+    // For daylight time change, it happens at 2:00AM
+    // We use noon time to determine the timezone standard for a date
+    let dt = new Date();
+    if (date instanceof Date) {
+      dt = date;
+    } else if (isIsoDate(date)) {
+      const ymd = date.split('-').map(x => parseInt(x));
+      dt = new Date(ymd[0], ymd[1] - 1, ymd[2], 12, 0, 0);
+    } else if (isUsDate(date)) {
+      const mdy = date.split('/').map(x => parseInt(x));
+      dt = new Date(mdy[2], mdy[0] - 1, mdy[1], 12, 0, 0);
+    }
+    const tz_offset_min = dt.getTimezoneOffset();
+    const offset_hrs = padStart2(Math.abs(tz_offset_min / 60)),
+      offset_min = padStart2(Math.abs(tz_offset_min % 60)),
+      offset = tz_offset_min === 0 ? '' : `${offset_hrs}:${offset_min}`;
+    return `${tz_offset_min === 0 ? 'Z' : (tz_offset_min < 0 ? '+' : '-')}${offset}`;
+  };
+
+  const awareizeIsoDate = function (dt, eod) {
+    if (typeof eod !== 'undefined' && !!eod) {
+      return dt + 'T23:59:59' + getTimeZoneStandard(dt);
+    } else {
+      return dt + 'T00:00:00' + getTimeZoneStandard(dt);
+    }
+  };
+
+  const getJSUTCDate = function (dt) {
+    // It doesn't work for JS Date input
+    if (dt instanceof Date) {
+      return dt;
+    } else if (isIsoDate(dt)) {
+      const ymd = dt.split('-').map(x => parseInt(x))
+      return new Date(Date.UTC(ymd[0], ymd[1] - 1, ymd[2]));
+    } else if (isUsDate(dt)) {
+      const mdy = dt.split('/').map(x => parseInt(x));
+      return new Date(Date.UTC(mdy[2], mdy[0] - 1, mdy[1]));
+    } else {
+      return null;
+    }
+  };
+
+  const dateCal = function (date, days) {
+    // TODO: need to take care of timezone issue for JS Date
+    // app.dateCal('2024-03-09', 0) = '2024-03-08';
+    // dateCal should be independent of time and timezone
+    // dateCal is independent of time and timezone for "date"s in ISO/US format string,
+    // It won't result in a date with the same time for JS date object
+    // due to daylight savings time issue
+    if (date instanceof Date) {
+      const dt = new Date(date);
+      dt.setUTCDate(dt.getUTCDate() + days);
+      return dt;
+    } else if (isIsoDate(date)) {
+      const dt = getJSUTCDate(date)
+      dt.setUTCDate(dt.getUTCDate() + days);
+      return `${dt.getUTCFullYear()}-${padStart2(dt.getUTCMonth() + 1)}-${padStart2(dt.getUTCDate())}`;
+    } else if (isUsDate(date)) {
+      const dt = getJSUTCDate(date);
+      dt.setUTCDate(dt.getUTCDate() + days);
+      return `${padStart2(dt.getUTCMonth() + 1)}/${padStart2(dt.getUTCDate())}/${dt.getUTCFullYear()}`;
+    } else {
+      return null;
+    }
+  };
+
+  function dateDiff(date1, date2) {
+    // TODO: need to take care of timezone issue for JS Date
+    // date1 and date2 are iso/US/Date formats
+    const dt1 = getJSUTCDate(date1),
+      dt2 = getJSUTCDate(date2);
+    return Math.floor((dt2.getTime() - dt1.getTime()) / 86400000);
+  }
+
+
+  /* Date Time Picker */
+  function DateTimePicker(host, s) {
+    // Host is the input that holds the date value,
+    // dtpickerId is the element ID that activates the DateTimePicker widget
+    // dtPickerId element can be the host or an icon inline with the host.
+    // In case dtpickerId element === host, keepFrame attribute will keep
+    // the widget when a user keeps clicking the host (input).
+    const weekdays_short = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const months_short = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const t = this;
+    t.SECOND = 1000;
+    t.MINUTE = t.SECOND * 60;
+    t.HOUR = t.MINUTE * 60;
+    t.DAY = t.HOUR * 24;
+
+    t.dtpickerId = "dtpicker";
+    t.frameId = "dtpicker-frame";
+    t.xPosition = "left";
+    t.yPosition = "bottom";
+    t.host = host;
+    t.datePicker = true;
+    t.timePicker = false;
+    t.firstdate = new Date(1900, 1, 1);
+    t.lastdate = new Date((new Date()).getFullYear() + 10, 11, 31);
+    t.isoformat = false;
+    t.format = (d) => {
+      return (t.datePicker ? (t.isoformat ? toIsoDate(d) : toUsDate(d)) : '') + (t.datePicker && t.timePicker ? ' ' : '') + (t.timePicker ? (t.isoformat ? toIsoTime(d) : toUsTime(d)) : '');
+    }
+
+    // Run config if settings present
+    if (s) t.config(s);
+
+    t.frame = document.createElement("div");
+    t.frame.id = t.frameId;
+    t.frame.className = "dtpicker-frame noselect";
+
+    // Show conditions
+    //window.onresize = () => {
+    //  if (t.display_state) t.show(true);
+    //}; // to update screen position
+
+    t.dtPickerClickEvent = function (e) {
+      if (
+        e.target === document.getElementById(t.dtpickerId) &&
+        !document.getElementById(t.frameId)
+      ) {
+        // Start date when opening
+        if (t.datePicker) {
+          t.load("day");
+        } else {
+          t.load("timepicker-picker");
+        }
+        t.show(true);
+      } else if (
+        document.getElementById(t.frameId) != null &&
+        //!e.path.includes(document.getElementById(t.frameId))  // deprecated
+        !e.composedPath().includes(document.getElementById(t.frameId))
+      ) {
+        if (!(e.target === document.getElementById(t.dtpickerId) && t.keepFrame)) {
+          t.show(false);
+        }
+      }
+    }
+    document.addEventListener("click", t.dtPickerClickEvent);
+
+    // Load
+    t.load = function (cls) {
+      while (t.frame.firstChild) t.frame.removeChild(t.frame.firstChild);
+
+      t.head = document.createElement("ul");
+      t.frame.append(t.head);
+
+      t.table = document.createElement("table");
+      t.frame.append(t.table);
+      t.table.className = cls;
+
+      // If data is month
+      if (cls === "day") {
+        // Prev
+        const prev = document.createElement("li");
+        t.head.append(prev);
+        prev.innerHTML = "<<";
+        if (t.firstdate === undefined || (
+          t.date.getMonth() > t.firstdate.getMonth() ||
+          t.date.getFullYear() > t.firstdate.getFullYear())
+        ) {
+          prev.className = "pointer";
+          prev.onclick = () => {
+            t.date = new Date(t.date.getFullYear(), t.date.getMonth() - 1, 1, t.date.getHours(), t.date.getMinutes());
+            t.load("day");
+          };
+        } else prev.className = "disabled";
+
+        // month and year
+        const head = document.createElement("li");
+        t.head.append(head);
+        head.colSpan = 5;
+        head.innerHTML = months[t.date.getMonth()] + " " + t.date.getFullYear();
+        head.onclick = () => {
+          t.load("month");
+        };
+        head.className = "pointer";
+
+        // Next
+        const next = document.createElement("li");
+        t.head.append(next);
+        next.innerHTML = ">>";
+        if (t.lastdate === undefined || (
+          t.date.getMonth() < t.lastdate.getMonth() ||
+          t.date.getFullYear() < t.lastdate.getFullYear())
+        ) {
+          next.className = "pointer";
+          next.onclick = () => {
+            t.date = new Date(t.date.getFullYear(), t.date.getMonth() + 1, 1, t.date.getHours(), t.date.getMinutes());
+            t.load("day");
+          };
+        } else next.className = "disabled";
+
+        // Header row [Weekdays]
+        const row = document.createElement("tr");
+        t.table.append(row);
+        for (let day = 0; day < 7; day++) {
+          const cell = document.createElement("th");
+          cell.innerHTML = weekdays_short[day];
+          row.append(cell);
+        }
+
+        // Dates
+        const first_day_in_month = new Date(t.date.getFullYear(), t.date.getMonth(), 1);
+        let index = 1 - (first_day_in_month.getDay() % 7);
+        for (let y = 0; y < 6; y++) {
+          const tr = document.createElement("tr");
+          t.table.append(tr);
+          for (let x = 0; x < 7; x++) {
+            const day = new Date(first_day_in_month.getFullYear(), first_day_in_month.getMonth(), index);
+            const td = document.createElement("td");
+            tr.append(td);
+            td.innerHTML = day.getDate();
+
+            if (day.getMonth() === t.date.getMonth() && t.disableddays(day) && (
+              t.firstdate === undefined ? true : (
+                day.getMonth() === t.firstdate.getMonth() ? (
+                  day.getFullYear() === t.firstdate.getFullYear() ?
+                    day.getDate() >= t.firstdate.getDate() : true
+                ) : true
+              )
+            ) && (
+              t.lastdate === undefined ? true : (
+                day.getMonth() === t.lastdate.getMonth() ? (
+                  day.getFullYear() === t.lastdate.getFullYear() ?
+                    day.getDate() <= t.lastdate.getDate() : true
+                ) : true
+              )
+            )) {
+              td.className = "pointer";
+              td.onclick = () => {
+                t.setDate(day);
+                if (!t.timePicker) {
+                  t.show(false);
+                }
+              };
+            } else td.className = "disabled";
+            td.className += day.toDateString() === (!!t.initialdate ? t.initialdate.toDateString() : new Date().toDateString()) ? " today" : "";
+
+            index++;
+          }
+        }
+      } else if (cls === "month") {   // If data is year
+        // Prev
+        const prev = document.createElement("li");
+        t.head.append(prev);
+        prev.innerHTML = "<<";
+        if (t.firstdate === undefined || (
+          t.date.getFullYear() > t.firstdate.getFullYear())
+        ) {
+          prev.className = "pointer";
+          prev.onclick = () => {
+            t.date = new Date(t.date.getFullYear() - 1, 1, 1, t.date.getHours(), t.date.getMinutes());
+            t.load("month");
+          };
+        } else prev.className = "disabled";
+
+        // Year
+        const head = document.createElement("li");
+        t.head.append(head);
+        head.colSpan = 5;
+        head.innerHTML = t.date.getFullYear();
+        head.onclick = () => {
+          t.load("year");
+        };
+        head.className = "pointer";
+
+        // Next
+        const next = document.createElement("li");
+        t.head.append(next);
+        next.innerHTML = ">>";
+        if (t.lastdate === undefined || (
+          t.date.getFullYear() < t.lastdate.getFullYear())
+        ) {
+          next.className = "pointer";
+          next.onclick = () => {
+            t.date = new Date(t.date.getFullYear() + 1, 1, 1, t.date.getHours(), t.date.getMinutes());
+            t.load("month");
+          };
+        } else next.className = "disabled";
+
+        // Months
+        for (let y = 0; y < 3; y++) {
+          const row = document.createElement("tr");
+          t.table.append(row);
+          for (let x = 0; x < 4; x++) {
+            const index = y * 4 + x;
+            const day = new Date(t.date.getFullYear(), index, 1);
+
+            const cell = document.createElement("td");
+            row.append(cell);
+            cell.innerHTML = months_short[index];
+
+            if ((t.firstdate !== undefined ? day.getTime() >= new Date(t.firstdate).setDate(1) : true) && (t.lastdate !== undefined ? day.getTime() <= new Date(t.lastdate).setDate(1) : true)) {
+              cell.className = "pointer";
+              cell.onclick = () => {
+                t.date = new Date(t.date.getFullYear(), index, 1, t.date.getHours(), t.date.getMinutes());
+                t.load("day");
+              };
+            } else cell.className = "disabled";
+          }
+        }
+      } else if (cls === 'year') {
+        // Prev
+        const prev = document.createElement("li");
+        t.head.append(prev);
+        prev.innerHTML = "<<";
+        if (t.firstdate === undefined || (
+          t.date.getFullYear() > t.firstdate.getFullYear())
+        ) {
+          prev.className = "pointer";
+          prev.onclick = () => {
+            t.date = new Date(t.date.getFullYear() - 20, 1, 1, t.date.getHours(), t.date.getMinutes());
+            t.load("year");
+          };
+        } else prev.className = "disabled";
+
+        // Year - Year
+        const head = document.createElement("li");
+        const curYear = t.date.getFullYear();
+        const fromYear = Math.floor(curYear / 10) * 10 - 10;
+        t.head.append(head);
+        head.innerHTML = fromYear + " - " + (fromYear + 19);
+
+        // Next
+        const next = document.createElement("li");
+        t.head.append(next);
+        next.innerHTML = ">>";
+        if (t.lastdate === undefined || (
+          t.date.getFullYear() < t.lastdate.getFullYear())
+        ) {
+          next.className = "pointer";
+          next.onclick = () => {
+            t.date = new Date(t.date.getFullYear() + 20, 1, 1, t.date.getHours(), t.date.getMinutes());
+            t.load("year");
+          };
+        } else next.className = "disabled";
+
+        // Years
+        for (let y = 0; y < 5; y++) {
+          const row = document.createElement("tr");
+          t.table.append(row);
+          for (let x = 0; x < 4; x++) {
+            const index = y * 4 + x;
+            const day = new Date(fromYear + index, 1, 1);
+
+            const cell = document.createElement("td");
+            row.append(cell);
+            cell.innerHTML = fromYear + index;
+
+            if ((t.firstdate !== undefined ? day.getTime() >= new Date(t.firstdate).setDate(1) : true) && (t.lastdate !== undefined ? day.getTime() <= new Date(t.lastdate).setDate(1) : true)) {
+              cell.className = "pointer";
+              cell.onclick = () => {
+                t.date = new Date(fromYear + index, 1, 1, t.date.getHours(), t.date.getMinutes());
+                t.load("month");
+              };
+            } else cell.className = "disabled";
+          }
+        }
+      }
+
+      if (cls === "day" || cls === "month" || cls === "year") {
+        t.frame.classList.remove('timepicker-frame');
+        t.frame.classList.add('datepicker-frame');
+        if (t.timePicker) {
+          const timeUl = createEl(t.frame, 'ul');
+          const timeLi1 = createEl(timeUl, 'li');
+          const timeLi2 = createEl(timeUl, 'li');
+          const timeLi3 = createEl(timeUl, 'li');
+          const clock = createEl(timeLi2, 'span', {'class': 'material-symbol-outlined', 'innerHTML': 'schedule'})
+          clock.onclick = (e) => {
+            e.preventDefault();
+            t.load("timepicker-picker");
+          }
+        }
+      }
+
+      if (cls === "timepicker-picker" || cls === "timepicker-hours" || cls === "timepicker-minutes") {
+        t.frame.classList.remove('datepicker-frame');
+        t.frame.classList.add('timepicker-frame');
+        if (t.datePicker) {
+          const timeUl = createEl(t.head, 'ul');
+          const timeLi1 = createEl(timeUl, 'li');
+          const timeLi2 = createEl(timeUl, 'li');
+          const timeLi3 = createEl(timeUl, 'li');
+          const calendar = createEl(timeLi2, 'span', {
+            'class': 'material-symbol-outlined',
+            'innerHTML': 'calendar_month'
+          })
+          calendar.onclick = (e) => {
+            e.preventDefault();
+            t.load("day");
+          }
+        }
+      }
+
+      if (cls === "timepicker-picker") {
+
+        const tr1 = createEl(t.table, 'tr');
+        const td11 = createEl(tr1, 'td');
+        const a11 = createEl(td11, 'a', {
+          'class': 'btn picker-action',
+          'href': '#',
+          'data-action': 'increment',
+          'data-target': 'hours'
+        });
+
+        const span11 = createEl(a11, 'span', {'class': 'material-symbol-outlined', 'innerHTML': 'keyboard_arrow_up'});
+        const td12 = createEl(tr1, 'td', {'class': 'separator'});
+        const td13 = createEl(tr1, 'td');
+        const a13 = createEl(td13, 'a', {
+          'class': 'btn picker-action',
+          'href': '#',
+          'data-action': 'increment',
+          'data-target': 'minutes'
+        });
+        const span13 = createEl(a13, 'span', {'class': 'material-symbol-outlined', 'innerHTML': 'keyboard_arrow_up'});
+        const td14 = createEl(tr1, 'td', {'class': 'separator'});
+
+        const tr2 = createEl(t.table, 'tr');
+        const td21 = createEl(tr2, 'td');
+        t.compHours = createEl(td21, 'span', {
+          'class': 'timepicker-hour',
+          'data-time-component': 'hours',
+          'title': 'Pick Hour',
+          'data-action': 'showHours'
+        });
+        const td22 = createEl(tr2, 'td', {'class': 'separator', 'innerHTML': ':'});
+        const td23 = createEl(tr2, 'td');
+        t.compMinutes = createEl(td23, 'span', {
+          'class': 'timepicker-minute',
+          'data-time-component': 'minutes',
+          'title': 'Pick Minute',
+          'data-action': 'showMinutes'
+        })
+        const td24 = createEl(tr2, 'td');
+        t.compPeriod = createEl(td24, 'button', {'class': 'btn btn-primary toggle-period'});
+
+        const tr3 = createEl(t.table, 'tr');
+        const td31 = createEl(tr3, 'td');
+        const a31 = createEl(td31, 'a', {
+          'class': 'btn picker-action',
+          'href': '#',
+          'data-action': 'decrement',
+          'data-target': 'hours'
+        })
+        const span31 = createEl(a31, 'span', {'class': 'material-symbol-outlined', 'innerHTML': 'keyboard_arrow_down'});
+        const td32 = createEl(tr3, 'td', {'class': 'separator'});
+        const td33 = createEl(tr3, 'td');
+        const a33 = createEl(td33, 'a', {
+          'class': 'btn picker-action',
+          'href': '#',
+          'data-action': 'decrement',
+          'data-target': 'minutes'
+        })
+        const span33 = createEl(a33, 'span', {'class': 'material-symbol-outlined', 'innerHTML': 'keyboard_arrow_down'});
+        const td34 = createEl(tr3, 'td', {'class': 'separator'});
+
+        t.table.querySelectorAll('a.picker-action').forEach(function (el) {
+          el.onclick = (e) => {
+            e.preventDefault();
+            const action = el.getAttribute('data-action');
+            const target = el.getAttribute('data-target');
+            let value = target === 'hours' ? t.date.getHours() : t.date.getMinutes();
+            value = action === 'increment' ? value + 1 : value - 1;
+            if (target === 'hours') {
+              value = (value + 24) % 24;
+              if ((t.compPeriod.innerHTML === 'AM') && (value > 11)) value = value - 12;
+              if ((t.compPeriod.innerHTML === 'PM') && (value < 12)) value = value + 12;
+              t.date.setHours(value);
+            } else {
+              value = (value + 60) % 60;
+              t.date.setMinutes(value);
+            }
+            t.setTime(t.date);
+            t.setClock();
+          }
+        });
+
+        t.compPeriod.onclick = (e) => {
+          e.preventDefault();
+          if (t.compPeriod.innerHTML === 'AM') {
+            t.compPeriod.innerHTML = 'PM';
+            t.date.setHours(t.date.getHours() + 12);
+          } else {
+            t.compPeriod.innerHTML = 'AM';
+            t.date.setHours(t.date.getHours() - 12);
+          }
+          t.setTime(t.date);
+          t.setClock();
+        };
+        t.compHours.onclick = (e) => {
+          e.preventDefault();
+          t.load('timepicker-hours');
+        };
+        t.compMinutes.onclick = (e) => {
+          e.preventDefault();
+          t.load('timepicker-minutes')
+        };
+
+        t.setTime(t.date);
+        t.setClock();
+      } else if (cls === "timepicker-hours") {
+        for (let i = 0; i < 3; i++) {
+          const tr = createEl(t.table, 'tr');
+          for (let j = 0; j < 4; j++) {
+            const td = createEl(tr, 'td', {
+              'class': 'hour',
+              'innerHTML': i * 4 + j + 1,
+              'data-action': 'selectHour'
+            });
+            td.onclick = (e) => {
+              e.preventDefault();
+              let value = parseInt(td.innerHTML);
+              if ((t.compPeriod.innerHTML === 'AM') && (value > 11)) value = value - 12;
+              if ((t.compPeriod.innerHTML === 'PM') && (value < 12)) value = value + 12;
+              t.date.setHours(value);
+              t.setTime(t.date);
+              t.setClock();
+              t.load("timepicker-picker");
+            }
+          }
+        }
+      } else if (cls === "timepicker-minutes") {
+        for (let i = 0; i < 3; i++) {
+          const tr = createEl(t.table, 'tr');
+          for (let j = 0; j < 4; j++) {
+            const minute = (i * 4 + j) * 5;
+            const td = createEl(tr, 'td', {
+              'class': 'minute',
+              'innerHTML': minute < 10 ? '0' + minute : minute,
+              'data-action': 'selectMinute'
+            });
+            td.onclick = (e) => {
+              e.preventDefault();
+              t.date.setMinutes(parseInt(td.innerHTML));
+              t.setTime(t.date);
+              t.setClock();
+              t.load("timepicker-picker");
+            }
+          }
+        }
+      }
+
+    };
+
+    t.show = function (bool) {
+      if (bool) {
+        const dp = document.getElementById(t.dtpickerId);
+        const xPos = t.xPosition === 'left' ? 'right' : 'left';
+        const yPos = t.yPosition === 'bottom' ? 'top' : 'bottom';
+        const y = t.yPosition === 'bottom' ? dp.offsetTop + dp.offsetHeight + 10 : dp.offsetTop + dp.offsetHeight + 8;
+        t.frame.style.setProperty(yPos, (y + t.yOffset) + "px");
+        t.frame.style.setProperty(xPos, (0 + t.xOffset) + "px");
+        document.getElementById(t.dtpickerId).parentElement.appendChild(t.frame);
+      } else if (!bool) {
+        document.getElementById(t.frameId).remove();
+      }
+    };
+
+  }
+
+  DateTimePicker.prototype.config = function (s) {
+    const t = this;
+    t.firstdate = s.firstdate || t.firstdate;
+    t.lastdate = s.lastdate || t.lastdate;
+    t.initialdate = s.initialdate || t.initialdate;
+    t.disableddays = s.disableddays || t.disableddays || (() => {
+      return true;
+    });
+    t.dtpickerId = s.dtpickerId || t.dtpickerId;
+    t.frameId = s.frameId || t.frameId;
+    t.xPosition = s.xPosition || t.xPosition;
+    t.yPosition = s.yPosition || t.yPosition;
+    t.xOffset = s.xOffset || 0;
+    t.yOffset = s.yOffset || 0;
+    t.datePicker = s.hasOwnProperty('datePicker') ? s.datePicker : t.datePicker;
+    t.timePicker = s.hasOwnProperty('timePicker') ? s.timePicker : t.timePicker;
+    t.isoformat = s.hasOwnProperty('isoformat') ? s.isoformat : t.isoformat;
+    t.format = s.format || t.format;
+    t.keepFrame = s.keepFrame || false;
+
+    if (typeof t.firstdate != "object" && t.firstdate !== undefined) console.error("firstdate is not of type Object");
+    else if (typeof t.lastdate != "object" && t.lastdate !== undefined) console.error("lastdate is not of type Object");
+    else if (typeof t.disableddays != "function") console.error("disableddays is not of type function");
+    else if (typeof t.format != "function") console.error("format is not of type function");
+    else if (!t.datePicker && !t.timePicker) console.error("At least one of datePicker or timePicker must be true");
+
+    const d = new Date();
+    let date = t.initialdate ? t.initialdate : d;
+    while (!t.disableddays(date)) {
+      date = t.firstdate && t.lastdate ? (
+        d.getTime() >= t.firstdate.getTime() && d.getTime() <= t.lastdate.getTime() ? d : t.firstdate
+      ) : t.firstdate ? (
+        d.getTime() >= t.firstdate.getTime() ? d : t.firstdate
+      ) : t.lastdate ? (
+        d.getTime() <= t.lastdate.getTime() ? d : t.lastdate
+      ) : d;
+      d.setTime(d.getTime() + t.DAY);
+    }
+    t.date = t.date || date;
+    t.host.value = t.initialdate ? t.format(t.initialdate) : '';
+  };
+
+  DateTimePicker.prototype.getDate = function () {
+    return this.date;
+  };
+
+  DateTimePicker.prototype.setDate = function (date) {
+    if (date < this.firstdate || date > this.lastdate) return;
+    if (!this.disableddays(date)) {
+      date = new Date(date.getTime() + this.DAY);
+      this.setDate(date);
+      return;
+    }
+    if (!!this.date) {
+      this.date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), this.date.getHours(), this.date.getMinutes());
+    } else {
+      this.date = date;
+    }
+    this.initialdate = new Date(this.date);
+    this.host.value = this.format(this.date);
+    if (typeof this.host.onchange == "function") this.host.onchange();
+  };
+
+  DateTimePicker.prototype.getTime = function () {
+    return this.date;
+  };
+
+  DateTimePicker.prototype.setTime = function (time) {
+    this.date = time;
+    this.host.value = this.format(this.date);
+    if (typeof this.host.onchange == "function") this.host.onchange();
+  };
+
+  DateTimePicker.prototype.setClock = function () {
+    let minutes = this.date.getMinutes() % 60;
+    this.compHours.innerHTML = (this.date.getHours() + 11) % 12 + 1;
+    this.compMinutes.innerHTML = minutes < 10 ? '0' + minutes : minutes;
+    this.compPeriod.innerHTML = this.date.getHours() > 11 ? 'PM' : 'AM';
+  }
+
+  DateTimePicker.prototype.reset = function () {
+    this.date = new Date();
+    this.host.value = '';
+  }
+
+  DateTimePicker.prototype.destroy = function () {
+    document.removeEventListener('click', this.dtPickerClickEvent);
+    if (this.frame) {this.frame.remove();}
+  }
+  /* Date Time Picker ends */
+
+
+  /* Form */
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        // Does this cookie string begin with the name we want?
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  function AjaxForm(form, options) {
+    const FORM_DATA_KEY = 'name',
+      FORM_DATA_VALUE = 'value';
+
+    const t = this;
+    t.form = form;
+    if (options) init(options);
+
+    t.form.onsubmit = (e) => {
+      e.preventDefault();
+      // TODO: javascript-triggered changes are unable to create form.isChanged();
+      if (t.changed || hasChanged()) {
+        if (t.ajax) {
+          ajax();
+        } else {
+          t.form.submit();
+        }
+      } else {
+        //console.log(t.noChangeMsg);
+        if (t.animateResult) createCustomMessage(t.noChangeMsg);
+        if (typeof t.onNoChange === 'function') t.onNoChange();
+      }
+    };
+
+    function ajax() {
+      const data = serialize();
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', t.url);
+      // default is multipart/form-data
+      //xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          const json = JSON.parse(xhr.responseText);
+          //console.log('Ajax result', json);
+          if (json.success) {
+            if (t.resetOnSubmit) reset();
+            if (t.animateResult) createCustomMessage(json.success, false);
+            if (typeof t.cb === 'function') t.cb(json);
+          } else if (json.errors) {
+            // Render form errors here
+            if (t.renderOnError) renderForm(json.errors);
+          }
+        } else if (xhr.readyState === 4 && xhr.status !== 200) {
+          // HTTP error
+          if (t.animateResult) createCustomMessage('Error: ' + xhr.status);
+        }
+      };
+      xhr.send(data);
+      xhr.onerror = function () {
+        // non-HTTP error
+        if (t.animateResult) createCustomMessage('Network Error!');
+        console.log(xhr.status + ": " + xhr.responseText);
+      };
+    }
+
+    function init(s) {
+      t.changed = false;
+      t.url = s.url || getBaseUrl();
+      t.resetOnSubmit = typeof (s.resetOnSubmit) === 'boolean' ? s.resetOnSubmit : true;
+      t.renderOnError = typeof (s.renderOnError) === 'boolean' ? s.renderOnError : false;
+      t.animateResult = typeof (s.animateResult) === 'boolean' ? s.animateResult : true;
+      t.ajax = typeof (s.ajax) === 'boolean' ? s.ajax : true;
+      t.cb = typeof (s.cb) === 'function' ? s.cb : () => {
+      };
+      t.onNoChange = typeof (s.onNoChange) === 'function' ? s.onNoChange : () => {
+      };
+      t.noChangeMsg = 'No change has been made';
+
+      // initial data
+      t.initial = getFormData();
+    }
+
+    function reset() {
+      t.form.reset();
+    }
+
+    function getFormData() {
+      const data = new FormData(t.form);
+      const formData = [];
+      for (const [key, value] of data) {
+        formData.push({[FORM_DATA_KEY]: key, [FORM_DATA_VALUE]: value});
+      }
+      return formData;
+    }
+
+    function hasChanged() {
+      t.formData = getFormData();
+      t.changed = false;
+      if (t.formData.length === t.initial.length) {
+        for (let i = 0; i < t.formData.length; i++) {
+          if (t.formData[i][FORM_DATA_KEY] !== t.initial[i][FORM_DATA_KEY] ||
+            t.formData[i][FORM_DATA_VALUE] !== t.initial[i][FORM_DATA_VALUE]) {
+            t.changed = true;
+            break;
+          }
+        }
+      } else {
+        t.changed = true;
+      }
+      return t.changed;
+    }
+
+    function serialize() {
+      return new FormData(t.form);
+    }
+
+    function renderForm(json) {
+      const nfe = t.form.querySelector('.alert.non-field-errors');
+      if (!!nfe) {
+        if ('__all__' in json) {
+          nfe.innerHTML = json['__all__'][0]['message'];
+          nfe.classList.remove('d-none');
+        } else {
+          nfe.classList.add('d-none');
+          nfe.innerHTML = '';
+        }
+      }
+      ['input', 'select', 'textarea'].forEach((field) => {
+        t.form.querySelectorAll(field).forEach((e) => {
+          if (e.getAttribute('type') !== 'hidden') {
+            //const errorEl = e.closest('.field-wrapper').querySelector('.invalid-feedback');
+            if (e.getAttribute('name') in json) {
+              if (e.classList.contains('is-valid')) e.classList.remove('is-valid');
+              if (!e.classList.contains('is-invalid')) e.classList.add('is-invalid');
+              const fieldWrapper = e.closest('.field-wrapper');
+              const fieldName = e.getAttribute('name');
+              if (!!fieldWrapper) {
+                fieldWrapper.querySelectorAll('.invalid-feedback').forEach((errEl) => {
+                  errEl.remove();
+                });
+                const docFrag = document.createDocumentFragment();
+                for (let i = 0; i < json[fieldName].length; i++) {
+                  createEl(docFrag, 'div', {
+                    'class': 'invalid-feedback d-block',
+                    'innerHTML': json[fieldName][i]['message']
+                  });
+                }
+                fieldWrapper.appendChild(docFrag);
+              }
+            } else {
+              if (e.classList.contains('is-invalid')) e.classList.remove('is-invalid');
+              if (!e.classList.contains('is-valid')) e.classList.add('is-valid');
+              e.closest('.field-wrapper').querySelectorAll('.invalid-feedback').forEach((errEl) => {
+                errEl.remove();
+              });
+            }
+          }
+        });
+      });
+    }
+
+  } // AjaxForm
+
+  /* Data Table */
+  function DataTable(parent, options) {
+    const t = this;
+    t.parent = parent;
+    t.config(options);
+    t.init();
+  }
+
+  DataTable.prototype.config = function (s) {
+    this.tableSearch = s.tableSearch || false;  // filter table row
+    this.dataSearch = s.dataSearch || false;  // filter data
+    this.multiSelect = s.multiSelect || false;
+    this.addRow = s.addRow || false;
+    this.actionEdit = s.actionEdit || false;
+    this.actionDel = s.actionDel || false;
+    this.actionEditCb = s.actionEditCb || null;
+    this.actionDelCb = s.actionDelCb || null;
+    this.id = s.id || 'data-table-input';  // id for search input
+    this.headers = s.headers;
+    this.rows = s.rows;
+    this.colKeys = s.colKeys;
+    this.colFormatters = s.colFormatters;
+    this.rowDataIdKey = s.rowDataIdKey;
+    this.originalData = s.data || [];
+    this.dataIdUnique = s.dataIdUnique || false;
+    this.addHandler = s.addHandler;
+    if (!!this.rowDataIdKey && this.dataIdUnique) {
+      this.filterKeys();
+    } else {
+      this.data = JSON.parse(JSON.stringify(this.originalData));
+    }
+    this.tableClass = s.tableClass || '';
+  };
+
+  DataTable.prototype.filterKeys = function () {
+    const existedKeys = this.rows.map(e => e[this.rowDataIdKey]);
+    this.data = this.originalData.filter(e => !existedKeys.includes(e[this.rowDataIdKey]));
+  }
+
+  DataTable.prototype.init = function () {
+    const t = this;
+    const docFrag = document.createDocumentFragment();
+    const container = createEl(docFrag, 'div', {'class': 'table-container'});
+    if (!!this.dataSearch || !!this.tableSearch) {
+      const flex = createEl(container, 'div', {'class': 'd-flex justify-content-end mb-4'});
+      const formOutline = createEl(flex, 'div', {'class': 'form-outline'});
+      t.input = createEl(formOutline, 'input', {
+        'type': 'text', 'id': t.id, 'class': 'form-control'
+      });
+      const label = createEl(formOutline, 'label', {
+        'class': 'form-label', 'for': t.id, 'style': 'margin-left: 0px;'
+      });
+      const notch = createEl(formOutline, 'div', {'class': 'form-notch'});
+      const leadingNotch = createEl(notch, 'div', {'class': 'form-notch-leading', 'style': 'width: 9px;'});
+      const middleNotch = createEl(notch, 'div', {'class': 'form-notch-middle', 'style': 'width: 47.2px;'});
+      const trailingNotch = createEl(notch, 'div', {'class': 'form-notch-trailing'});
+      if (!!this.addRow) {
+        t.btnAddRow = createEl(flex, 'button', {
+          'class': 'btn btn-primary btn-sm ms-3',
+          'innerHTML': '<span class="material-symbols-outlined">add</span>'
+        });
+      }
+      const hr = createEl(container, 'hr');
+    }
+    const tableWrapper = createEl(container, 'div', {
+      'class': 'data-table-wrapper',
+      'style': 'overflow: auto; position: relative;'
+    });
+    t.table = createEl(tableWrapper, 'table', {
+      'class': 'table table-responsive data-table font-sm' + (t.tableClass === '' ? '' : ' ' + t.tableClass)
+    });
+    if (!!t.headers) {
+      const thead = createEl(t.table, 'thead');
+      const theadTr = createEl(thead, 'tr');
+      t.headers.forEach((el) => {
+        createEl(theadTr, 'th', {'innerHTML': el});
+      });
+    }
+    t.tbody = createEl(t.table, 'tbody');
+    t.buildTableBody();
+
+    t.parent.append(docFrag);
+
+    // Add event listeners
+    if (!!t.input) {
+      t.input.addEventListener('focus', () => {
+        if (!t.dropdownSelect) {
+          const optionValues = !!t.rowDataIdKey ? t.data.map(e => e[t.rowDataIdKey]) : null;
+          t.dropdownSelect = new SearchSelect(t.input, {
+            'options': t.data.map(e => e['t']),
+            'optionValues': optionValues,
+            'selectWidth': '100%',
+            'hideDropdownSearch': true,
+            'multiSelect': t.multiSelect
+          });
+        }
+      });
+    }
+
+    if (!!t.btnAddRow && typeof t.addHandler === 'function') {
+      t.btnAddRow.onclick = (e) => {
+        const value = !!t.dropdownSelect ? t.dropdownSelect.getSelectedValue() : t.input.value;
+        t.addHandler(e, value, t);
+      }
+    }
+  }
+
+  DataTable.prototype.getFormatter = function (colIdx) {
+    return !!this.colFormatters && (colIdx < this.colFormatters.length) && (typeof this.colFormatters[colIdx] === 'function') ? this.colFormatters[colIdx] : null;
+  }
+
+  DataTable.prototype.buildTableBody = function () {
+    const t = this;
+    this.rows.forEach((row, rowIdx) => {
+      const tr = createEl(t.tbody, 'tr');
+      if (!!this.rowDataIdKey) tr.setAttribute('data-row-id', row[this.rowDataIdKey]);
+      t.colKeys.forEach((colKey, colIdx) => {
+        const fmt = t.getFormatter(colIdx);
+        const disp = (colKey != null) && (colKey !== '') ? (!!fmt ? fmt(row, row[colKey]) : row[colKey]) : '';
+        const innerHTML = '<div class="td-disp">' + disp + '</div>';
+        const td = createEl(tr, 'td', {'innerHTML': innerHTML});
+      });
+      if (!!this.actionEdit || !!this.actionDel) {
+        const td = createEl(tr, 'td');
+        if (!!this.actionEdit) {
+          t.btnEdit = createEl(td, 'button', {
+            'class': 'me-2 btn edit-button',
+            'innerHTML': '<span class="material-symbols-outlined">edit_square</span>'
+          });
+          if (!!t.actionEditCb) t.btnEdit.addEventListener('click', t.actionEditCb);
+        }
+        if (!!this.actionDel) {
+          t.btnDel = createEl(td, 'button', {
+            'class': 'btn delete-button',
+            'innerHTML': '<span class="material-symbols-outlined">delete</span>'
+          });
+          if (!!t.actionDelCb) t.btnDel.addEventListener('click', t.actionDelCb);
+        }
+      }
+    });
+  }
+
+  DataTable.prototype.updateTable = function (data) {
+    this.rows = data;
+    this.tbody.innerHTML = '';
+    this.buildTableBody();
+  }
+
+  DataTable.prototype.renderRow = function (rowId, row) {
+    const t = this;
+    const tr = t.tbody.querySelector('tr[data-row-id="' + rowId + '"]');
+    if (!!tr) {
+      t.colKeys.forEach((colKey, colIdx) => {
+        const fmt = t.getFormatter(colIdx);
+        const disp = !!colKey ? (!!fmt ? fmt(row) : row[colKey]) : '';
+        const tdDisp = tr.querySelector('td:nth-child(' + (colIdx + 1) + ') .td-disp');
+        if (!!tdDisp) tdDisp.innerHTML = disp;
+      });
+      const index = getArrayElementIndexByKey(t.rows, t.rowDataIdKey, rowId);
+      t.rows[index] = row;
+    }
+  }
+
+
+  /* Modal */
+  function Modal(options) {
+    const t = this;
+    t.init(options);
+    t.build();
+  }
+
+  Modal.prototype.init = function (s) {
+    const t = this;
+    t.id = Math.floor(Math.random() * 1000000000).toString();
+    t.title = s.title || 'Modal Title';
+    t.content = s.content || '';
+    t.child = s.child;
+    t.dialogClass = s.dialogClass;
+    t.buttonName = s.buttonName;
+    t.showOnButtonClick = s.showOnButtonClick || false;
+    t.buttonCb = s.buttonCb || (() => {
+    });
+    t.dismissCb = s.dismissCb || (() => {
+    });
+  }
+
+  Modal.prototype.build = function () {
+    const t = this;
+    const docFrag = document.createDocumentFragment();
+    t.modal = createEl(docFrag, 'div', {
+      'class': 'modal fade show', 'id': 'modal-' + this.id, 'tabindex': '-1',
+      'aria-labelledby': 'modal-label-' + this.id, 'aria-modal': 'true',
+      'role': 'dialog', 'style': 'display: block; background-color: rgba(0,0,0,0.4)',
+    });
+    const dialog = createEl(t.modal, 'div', {
+      'class': 'modal-dialog' + (!!t.dialogClass ? ' ' + t.dialogClass : '')
+    });
+    const content = createEl(dialog, 'div', {'class': 'modal-content'});
+    t.header = createEl(content, 'div', {'class': 'modal-header'});
+    const title = createEl(t.header, 'h5', {
+      'class': 'modal-title', 'id': 'modal-label-' + this.id, 'innerHTML': t.title
+    });
+    const close = createEl(t.header, 'button', {
+      'type': 'button', 'class': 'btn-close', 'data-mdb-dismiss': 'modal', 'aria-label': 'Close'
+    });
+    close.addEventListener('click', () => {
+      t.hide();
+      t.dismissCb();
+    });
+    t.body = createEl(content, 'div', {'class': 'modal-body', 'innerHTML': t.content});
+    if (!!t.child) t.body.append(t.child);
+    t.footer = createEl(content, 'div', {'class': 'modal-footer'});
+    const btn1 = createEl(t.footer, 'button', {
+      'type': 'button', 'class': 'btn btn-secondary', 'data-mdb-dismiss': 'modal', 'innerHTML': 'Close'
+    });
+    btn1.addEventListener('click', () => {
+      t.hide();
+      t.dismissCb();
+    });
+    if (!!t.buttonName) {
+      const btn2 = createEl(t.footer, 'button', {
+        'type': 'button', 'class': 'btn btn-primary', 'innerHTML': t.buttonName
+      });
+      btn2.addEventListener('click', () => {
+        if (!t.showOnButtonClick) t.hide();
+        t.buttonCb();
+      });
+    }
+    document.body.append(docFrag);
+  };
+
+  Modal.prototype.hide = function () {
+    this.modal.classList.remove('show');
+    this.modal.style = '';
+  }
+
+  Modal.prototype.show = function () {
+    this.modal.classList.add('show');
+    this.modal.style = 'display: block; background-color: rgba(0,0,0,0.4)';
+  }
+
+  Modal.prototype.destroy = function () {
+    this.modal.remove();
+  }
+
+
+  /* API */
+  const makeFormData = function (data) {
+    let formData = new FormData();
+    for (const key in data) {
+      Array.isArray(data[key])
+        ? data[key].forEach(value => formData.append(key + '[]', value))
+        : formData.append(key, data[key]);
+    }
+    return formData;
+  };
+
+  const makeFormBody = function (data) {
+    let formBody = [];
+    for (const property in data) {
+      const encodedKey = encodeURIComponent(property);
+      const encodedValue = encodeURIComponent(data[property]);
+      formBody.push(encodedKey + "=" + encodedValue);
+    }
+    return formBody.join("&");
+  }
+
+  const apiFetch = function (url, options) {
+    const method = options.method || (!!options.body || !!options.data ? 'POST' : 'GET');
+    const contentType = !!options.body ? 'application/json' : 'multipart/form-data'; //'application/x-www-form-urlencoded;charset=UTF-8';
+    let headers;
+    if (method === 'POST') {
+      headers = {'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': contentType};
+    } else {
+      headers = {'Accept': 'application/json'};
+    }
+    const requestOptions = {
+      method: method,
+      headers: headers,
+    };
+    if (!!options.body) requestOptions['body'] = JSON.stringify(options.body);
+    if (!!options.data) requestOptions['body'] = makeFormData(options.data);
+    fetch(url, requestOptions)
+      .then(r => r.json())
+      .then(data => {
+        if (typeof options.cb === 'function') options.cb(data);
+      })
+      .catch(error => {
+        // handle the error
+        if (typeof options.errorCb === 'function') options.errorCb(error);
+      });
+  }
+
+  const apiXhr = function (url, options) {
+    const method = options.method || (!!options.data ? 'POST' : 'GET');
+    //const contentType = 'application/x-www-form-urlencoded;charset=UTF-8';
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url);
+    // When using xhr 'GET', it is getting a json data set; so default is 'application/json';
+    let contentType = options.contentType || 'application/json';
+    if (options.data) {
+      // When posting data, the data can either be FormData object or json object;
+      contentType = options.data instanceof FormData ? 'multipart/form-data' : 'application/json';
+    }
+    // RequestHeader default is multipart/form-data, set RequestHeader if necessary
+    if (contentType !== 'multipart/form-data') xhr.setRequestHeader('Content-type', contentType);
+    xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        const data = JSON.parse(xhr.responseText);
+        if (typeof options.cb === 'function') options.cb(data);
+      } else if (xhr.readyState === 4 && xhr.status !== 200) {
+        // HTTP error
+        let data = {};
+        try {
+          data = JSON.parse(xhr.responseText);
+        } catch (error) {
+          data.error = error;
+        }
+        if (typeof options.errorCb === 'function') options.errorCb(data);
+      }
+    };
+    const requestData = contentType === 'application/json' ? JSON.stringify(options.data) : options.data;
+    xhr.send(requestData);
+    xhr.onerror = function () {
+      // non-HTTP error
+      console.log(xhr.status + ": " + xhr.responseText);
+      if (typeof options.nonHttpErrorCb === 'function') options.nonHttpErrorCb();
+    };
+  }
+
+  const API = {
+    fetch: apiFetch,
+    XHR: apiXhr,
+  };
+
+
+  /* TabHash */
+  function TabHash(options = {}) {
+    const t = this;
+    t.nav_btn_selector = options.nav_btn_selector || '.nav-tabs a.nav-link';
+    t.nav_tab_event = options.nav_tab_event || 'shown.bs.tab';
+    t.data_target_attr = options.data_target_attr || 'data-bs-target';
+
+    init();
+
+    document.querySelectorAll(t.nav_btn_selector).forEach(el => {
+      el.onclick = () => el.dispatchEvent(new Event(t.nav_tab_event));
+      el.addEventListener(t.nav_tab_event, function (e) {
+        history.pushState({}, "", e.target.getAttribute(t.data_target_attr));
+      });
+    });
+
+    function init() {
+      t.hash = location.hash.replace(/^#/, '');
+      if (t.hash) {
+        document.querySelectorAll(t.nav_btn_selector).forEach(el => {
+          el.classList.remove('active');
+          const tab = document.querySelector(el.getAttribute(t.data_target_attr));
+          tab.classList.remove('active', 'show');
+        });
+        document.querySelector(t.nav_btn_selector + '[' + t.data_target_attr + '="#' + t.hash + '"]').classList.add('active');
+        const tab = document.getElementById(t.hash);
+        tab.classList.add('active', 'show');
+        tab.dispatchEvent(new Event(t.nav_tab_event));
+      }
+    }
+
+  }
+
+  function dispatchGlobalEvent(eventName, data = {}) {
+    const event = new window.CustomEvent(eventName, {detail: data});
+    window.dispatchEvent(event);
+  }
+
+
+  /* Smart Form */
+  function SmartForm(form, options) {
+    const t = this;
+    t.form = form;
+    if (options) t.init(options);
+  }
+
+  SmartForm.prototype.init = function (s) {
+    const t = this;
+    t.FORM_ELEMENT_TAGS = ['input', 'textarea', 'select'];
+    t.FORM_DATA_KEY = 'name';
+    t.FORM_DATA_VALUE = 'value';
+    t.Q_PAGE_SELECTOR = '.q-page';
+    t.DATA_PAGE_ATTR = 'data-page';
+    t.PAGE_BTN_SELECTOR = '.page-btn';
+    t.NEXT_BTN_CLASS = 'btn-next';
+    t.NEXT_BTN_SELECTOR = 'button.page-btn.btn-next';
+    t.AUTO_NEXT_CLASS = 'auto-next';
+    t.PAGE_CONTENT_SELECTOR = '.form-group';
+    t.REVIEW_PAGE_CLASS = 'q-page-review';
+    t.REVIEW_SELECTOR = '#review';
+    t.NON_FIELD_ERROR_SELECTOR = '.alert.non-field-errors';
+    t.FIELD_WRAPPER_SELECTOR = '.form-group';
+    t.INVALID_FEEDBACK_SELECTOR = '.invalid-feedback';
+
+    t.form.onkeydown = (e) => {
+      if (e.keyCode === 13) return false;
+    };
+    t.changed = false;
+    t.url = s.url || getBaseUrl();
+    t.resetOnSubmit = typeof (s.resetOnSubmit) === 'boolean' ? s.resetOnSubmit : true;
+    t.renderOnError = typeof (s.renderOnError) === 'boolean' ? s.renderOnError : false;
+    t.animateResult = typeof (s.animateResult) === 'boolean' ? s.animateResult : true;
+    t.ajax = typeof (s.ajax) === 'boolean' ? s.ajax : true;
+    t.cb = typeof (s.cb) === 'function' ? s.cb : () => {
+    };
+    t.onNoChange = typeof (s.onNoChange) === 'function' ? s.onNoChange : () => {
+    };
+    t.noChangeMsg = 'No change has been made';
+    t.widgets = {};
+
+    t.validatorUrl = s.validatorUrl || getBaseUrl();
+    t.validators = s.validators || {};
+    t.validateEvent = 'sf.validate';
+    t.validationIndicators = {};
+    t.typingInterval = 1000;
+    t.typingTimer = null;
+
+    // elements with dependencies
+    t.depElems = t.form.querySelectorAll('*[id^="id_if_"]');
+    // initial data
+    t.initial = t.getFormData();
+
+    // set initial visibility
+    t.setVisibility();
+
+    // click next or prev
+    t.form.querySelectorAll(t.PAGE_BTN_SELECTOR).forEach(function (btn) {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        const curPage = btn.closest(t.Q_PAGE_SELECTOR);
+        const goForward = btn.classList.contains(t.NEXT_BTN_CLASS);
+        t.skipPageUntil(curPage, goForward, curPage);
+      };
+    });
+
+    // form elements
+    t.elements = [];
+    t.FORM_ELEMENT_TAGS.forEach(function (tag) {
+      t.elements = t.elements.concat(Array.from(t.form.getElementsByTagName(tag)));
+    });
+    t.createWidgets();
+    t.addEvents();
+
+    // function to get Row data for review
+    t.doReview = typeof (s.doReview) === 'boolean' ? s.doReview : false;
+    t.getReviewRows = typeof (s.getReviewRows) === 'function' ? s.getReviewRows : () => [];
+    t.makeReview = s.makeReview || t.makeReview;
+
+    t.form.onsubmit = (e) => {
+      e.preventDefault();
+      // TODO: javascript-triggered changes are unable to create form.isChanged();
+      if (t.changed || t.hasChanged()) {
+        if (t.ajax) {
+          t.ajaxSubmit();
+        } else {
+          t.form.submit();
+        }
+      } else {
+        if (t.animateResult) createCustomMessage(t.noChangeMsg);
+        if (typeof t.onNoChange === 'function') t.onNoChange();
+      }
+    };
+
+  };
+
+  SmartForm.prototype.createWidgets = function () {
+    const t = this;
+    t.elements.forEach(function (el) {
+      const tagName = el.tagName.toLowerCase();
+      if (tagName === 'input') {
+        if (el.classList.contains('date-picker')) {
+          const name = el.getAttribute('name');
+          t.widgets[name] = new DateTimePicker(el, {
+            'dtpickerId': `id_${name}`,
+            'frameId': `${name}-datepicker-frame`,
+            'xPosition': 'right',
+            'xOffset': 12,
+            'yPosition': 'bottom',
+            'initialdate': new Date(),
+          });
+          el.closest('.q-page').querySelector('button.btn-next').disabled = false;
+        }
+      } else if (tagName === 'select') {
+        if (el.classList.contains('dropdown-select')) {
+          t.widgets[el.getAttribute('name')] = new DropdownSelect(el);
+        }
+      }
+    });
+  };
+
+  SmartForm.prototype.addEvents = function () {
+    const t = this;
+
+    t.elements.forEach(function (el) {
+      // Visibility, enable next and auto next
+      const tagName = el.tagName.toLowerCase();
+      const eventName = (tagName === 'input' && el.type === 'text') || (tagName === 'textarea') ? 'input' : 'change';
+
+      el.addEventListener(eventName, () => {
+        t.fieldEventHandler(el);
+      });
+
+      if (eventName === 'input') {
+        el.addEventListener('keydown', (e) => {
+          if (e.keyCode === 13) {
+            t.fieldEventHandler(el, true);
+          }
+        });
+
+        if (t.validators.hasOwnProperty(el.name) && t.validators[el.name] === 'ajax') {
+          t.validationIndicators[el.name] = false;
+          el.addEventListener('keydown', () => {
+            clearTimeout(t.typingTimer);
+            t.validationIndicators[el.name] = false;
+          });
+          el.addEventListener('keyup', (e) => {
+            // Everytime a new character input, disable next button
+            const nextBtn = el.closest(t.Q_PAGE_SELECTOR).querySelector(t.NEXT_BTN_SELECTOR);
+            if (!!nextBtn) nextBtn.disabled = true;
+            clearTimeout(t.typingTimer);
+            t.validationIndicators[el.name] = false;
+            const nextPageOnValid = e.keyCode === 13;
+            t.typingTimer = setTimeout(() => {
+              t.ajaxValidation(el, nextPageOnValid).then(() => {
+              });
+            }, t.typingInterval);
+          });
+        }
+      }
+
+    });
+  };
+
+  SmartForm.prototype.fieldEventHandler = function (el, nextPageOnValid = false) {
+    const t = this;
+    let validated = true;
+    if (t.validators.hasOwnProperty(el.name)) {
+      if (typeof t.validators[el.name] === 'function') {
+        validated = t.validators[el.name](el);
+      } else if (t.validators[el.name] === 'ajax') {
+        if (t.validationIndicators.hasOwnProperty(el.name) && t.validationIndicators[el.name] === false) {
+          const event = new Event(t.validateEvent, {'bubbles': true});
+          el.dispatchEvent(event);
+          validated = false;
+        }
+      }
+    }
+    if (validated) {
+      t.onFieldChange(el, nextPageOnValid);
+    }
+  };
+
+  SmartForm.prototype.onFieldChange = function (el, forceNextPage = false) {
+    const t = this;
+    t.setVisibility();
+    const curPage = el.closest(t.Q_PAGE_SELECTOR);
+    const nextBtn = curPage.querySelector(t.NEXT_BTN_SELECTOR);
+    if (!!nextBtn) nextBtn.disabled = false;
+    if (el.classList.contains(t.AUTO_NEXT_CLASS) || forceNextPage) {
+      t.skipPageUntil(curPage, true, curPage);
+    }
+  };
+
+  SmartForm.prototype.ajaxValidation = async function (element, nextPageOnValid) {
+    const t = this;
+    const url = app.urlAddParams(t.validatorUrl, {
+      'action': 'validate', 'target': element.name, 'value': element.value
+    });
+    const response = await fetch(url);
+    if (response.ok) {
+      const data = await response.json();
+      const fb = element.closest(t.FIELD_WRAPPER_SELECTOR).querySelector(t.INVALID_FEEDBACK_SELECTOR);
+      const curPage = element.closest(t.Q_PAGE_SELECTOR);
+      const nextBtn = curPage.querySelector(t.NEXT_BTN_SELECTOR);
+      if (!!data.valid) {
+        t.validationIndicators[element.name] = true;
+        nextBtn.disabled = false;
+        t.renderFieldValid(element, fb, '');
+        if (nextPageOnValid === true) {
+          t.skipPageUntil(curPage, true, curPage);
+        }
+      } else {
+        nextBtn.disabled = true;
+        t.renderFieldValid(element, fb, data.error);
+      }
+    }
+  };
+
+  SmartForm.prototype.ajaxSubmit = function () {
+    const t = this;
+    const data = t.serialize();
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', t.url);
+    //xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        const json = JSON.parse(xhr.responseText);
+        //console.log(json);
+        if (json.success) {
+          if (t.resetOnSubmit) t.reset();
+          if (t.animateResult) createCustomMessage(json.success, false);
+          if (typeof t.cb === 'function') t.cb(json);
+        } else if (json.errors) {
+          // Render form errors here
+          //console.log(json.errors);
+          if (t.renderOnError) t.renderForm(json.errors);
+        }
+      } else if (xhr.readyState === 4 && xhr.status !== 200) {
+        // HTTP error
+        if (t.animateResult) createCustomMessage('Error: ' + xhr.status);
+      }
+    };
+    xhr.send(data);
+    xhr.onerror = function () {
+      // non-HTTP error
+      if (t.animateResult) createCustomMessage('Network Error!');
+      console.log(xhr.status + ": " + xhr.responseText);
+    };
+  };
+
+  SmartForm.prototype.reset = function () {
+    this.form.reset();
+  };
+
+  SmartForm.prototype.getFormData = function () {
+    const t = this;
+    const data = new FormData(t.form);
+    const formData = [];
+    for (const [key, value] of data) {
+      formData.push({[t.FORM_DATA_KEY]: key, [t.FORM_DATA_VALUE]: value});
+    }
+    return formData;
+  };
+
+  SmartForm.prototype.hasChanged = function () {
+    const t = this;
+    t.formData = t.getFormData();
+    t.changed = false;
+    if (t.formData.length === t.initial.length) {
+      for (let i = 0; i < t.formData.length; i++) {
+        if (t.formData[i][t.FORM_DATA_KEY] !== t.initial[i][t.FORM_DATA_KEY] ||
+          t.formData[i][t.FORM_DATA_VALUE] !== t.initial[i][t.FORM_DATA_VALUE]) {
+          t.changed = true;
+          break;
+        }
+      }
+    } else {
+      t.changed = true;
+    }
+    return t.changed;
+  };
+
+  SmartForm.prototype.serialize = function () {
+    const t = this;
+    const formData = new FormData(t.form);
+    /*t.form.querySelectorAll('input[type="file"]').forEach(function (el) {
+      el.files.forEach(function (f) {
+        formData.append(el.name, f);
+      });
+    });*/
+    return formData;
+  };
+
+  SmartForm.prototype.getCheckedValues = function (inputs) {
+    // get multiple select (checkboxes) and radio select
+    return inputs.filter(e => e.checked === true).map(e => e.value);
+  };
+
+  SmartForm.prototype.getSelectedOptions = function (el) {
+    const t = this;
+    if (el.classList.contains('form-check-options')) {
+      return t.getCheckedValues([...el.querySelectorAll('input.form-check-input')]);
+    } else if (el.classList.contains('form-check-box')) {
+      return t.getCheckedValues([...el.querySelectorAll('input.form-check-box')]);
+    }
+    return [];
+  };
+
+  SmartForm.prototype.conditionsAreMet = function (elem) {
+    const t = this;
+    let conditionsSatisfied = true;
+    for (let i = 0; i < elem.classList.length; i++) {
+      const cls = elem.classList[i];
+      if (cls.startsWith('if_')) {
+        const condition = cls.split('if_')[1];
+        const conditionVal = condition.split('__')[1];
+        let conditionId = 'id_' + condition.split('__')[0];
+        let conditionEl = document.getElementById(conditionId);
+        if (!conditionEl) {
+          // the condition also depends on another condition
+          conditionId = 'id_if_' + condition.split('__')[0];
+          conditionEl = document.getElementById(conditionId);
+        }
+        if (!conditionEl) {
+          continue;
+        }
+        const selectedOptions = t.getSelectedOptions(conditionEl);
+        if (!selectedOptions.includes(conditionVal)) {
+          conditionsSatisfied = false;
+          break;
+        }
+      }
+    }
+    return conditionsSatisfied;
+  };
+
+  SmartForm.prototype.setVisibility = function () {
+    const t = this;
+    t.depElems.forEach(function (el) {
+      if (t.conditionsAreMet(el)) {
+        el.closest('.form-group').classList.remove('d-none');
+      } else {
+        el.closest('.form-group').classList.add('d-none');
+      }
+    });
+  };
+
+  SmartForm.prototype.skipPageUntil = function (curPage, goForward, fromPage) {
+    const t = this;
+    const page = curPage.getAttribute(t.DATA_PAGE_ATTR);
+    const newPageSelector = t.Q_PAGE_SELECTOR + '-' + (parseInt(page) + (goForward ? 1 : -1));
+    const newPage = t.form.querySelector(newPageSelector);
+    const formGroup = newPage.querySelector(t.PAGE_CONTENT_SELECTOR);
+    const curPageCls = goForward ? 'past' : 'future';
+    const newPageCls = goForward ? 'future' : 'past';
+    classList(curPage).remove('active').add(curPageCls);
+    if (formGroup.classList.contains('d-none')) {
+      // This is not the destination page
+      // Clear the field if this page is skipped
+      // TODO: clear other selectors like type="text"
+      const selectors = ['input[type="radio"]:checked', 'input[type="checkbox"]:checked'];
+      selectors.forEach((s) => {
+        newPage.querySelectorAll(s).forEach((e) => {
+          e.checked = false;
+        });
+      });
+      t.setVisibility();
+      newPage.classList.remove(newPageCls);
+      t.skipPageUntil(newPage, goForward, fromPage);
+    } else {
+      // This is the destination page
+      // makeReview if this is the review page
+      if (newPage.classList.contains(t.REVIEW_PAGE_CLASS) && t.doReview) {
+        t.makeReview();
+      }
+      newPage.classList.add('active');
+      setTimeout(function () {
+        newPage.classList.remove(newPageCls);
+      }, 10);
+    }
+  };
+
+  SmartForm.prototype.makeReview = function () {
+    const t = this;
+    const rows = t.getReviewRows();
+    const docFrag = document.createDocumentFragment();
+    if (rows.length > 1) {
+      createEl(docFrag, 'div', {
+        'class': 'form-label',
+        'innerHTML': 'Please review and submit your response:'
+      });
+      const table = createEl(docFrag, 'table', {'class': 'table table-striped'});
+      const thead = createEl(table, 'thead');
+      const theadTr = createEl(thead, 'tr', {'class': 'text-uppercase'});
+      rows[0].forEach(function (th) {
+        createEl(theadTr, 'th', {'innerHTML': th});
+      });
+      const tbody = createEl(table, 'tbody');
+      for (let i = 1; i < rows.length; i++) {
+        const tr = createEl(tbody, 'tr');
+        rows[i].forEach(function (td) {
+          createEl(tr, 'td', {'innerHTML': td});
+        });
+      }
+    } else {
+      createEl(docFrag, 'div', {
+        'class': 'form-label',
+        'innerHTML': 'Nothing to review.'
+      });
+    }
+    const review = t.form.querySelector(t.REVIEW_SELECTOR);
+    review.innerHTML = '';
+    review.appendChild(docFrag);
+  };
+
+  SmartForm.prototype.renderFieldValid = function (element, feedback, error) {
+    if (!!error && error !== '') {
+      element.classList.add('is-invalid');
+      feedback.innerHTML = error;
+      feedback.classList.add('d-block');
+    } else {
+      element.classList.remove('is-invalid');
+      feedback.innerHTML = '';
+      feedback.classList.remove('d-block');
+    }
+  };
+
+  SmartForm.prototype.renderForm = function (json) {
+    const t = this;
+    const nfe = t.form.querySelector(t.NON_FIELD_ERROR_SELECTOR);
+    if (!!nfe) {
+      if ('__all__' in json) {
+        nfe.innerHTML = json['__all__'][0]['message'];
+        nfe.classList.remove('d-none');
+      } else {
+        nfe.classList.add('d-none');
+        nfe.innerHTML = '';
+      }
+    }
+
+    t.elements.forEach((el) => {
+      const fb = el.closest(t.FIELD_WRAPPER_SELECTOR).querySelector(t.INVALID_FEEDBACK_SELECTOR);
+      if (!!fb && el.getAttribute('type') !== 'hidden') {
+        if (el.getAttribute('name') in json) {
+          t.renderFieldValid(el, fb, json[el.getAttribute('name')][0]['message'])
+        } else {
+          fb.classList.add('is-valid');
+          fb.classList.remove('d-block');
+        }
+      }
+    });
+  };
+  /* SmartForm ends */
+
+
+  /* Select */
+  class Select {
+    constructor (options) {
+      const t = this;
+      t.config(options);
+      t.init();
+    }
+
+    config (s) {
+      const t = this;
+      if (!s.options) throw new Error('Options are required!');
+      t.options = s.options;
+      t.optionValues = s.optionValues;
+      t.preOptions = s.preOptions || [];
+      t.postOptions = s.postOptions || [];
+      t.selectWidth = s.selectWidth || '250px';
+      t.optionsHeight = s.optionsHeight || 200;
+      t.optionHeight = s.optionHeight || 30;
+      t.hasSearch = s.hasSearch || false;
+      t.multiSelect = s.multiSelect || false;
+      t.disabled = s.disabled || false;
+      t.readOnly = s.readOnly || false;
+      t.initial = s.initial;
+      t.initialValue = s.initialValue;
+      t.initials = s.initials || (t.multiSelect && t.initial ? [t.initial] : null);
+      t.initialValues = s.initialValues || (t.multiSelect && t.initialValue ? [t.initialValue] : null);
+      t.initialScroll = s.initialScroll;
+      t.beforeShow = s.beforeShow; // Update options in real time;
+      t.beforeOptions = [];
+      t.originalInput = s.input;
+      t.inputClass = s.inputClass || '';
+      t.inputName = s.inputName;
+      t.placeholder = s.placeholder;
+      t.container = s.container;
+      t.onchange = s.onchange;
+      t.containerClass = s.containerClass;
+      if (!t.originalInput && !t.container) {
+        throw new Error('Either input or container needs to be provided!');
+      }
+    };
+
+    createOption (parent, value, initialValue, idx) {
+      const t = this;
+      const optionValue = !!t.optionValues && idx < t.optionValues.length ? t.optionValues[idx] : `${value}`;
+      let isInitial = optionValue === initialValue;
+      if (t.multiSelect) {
+        if (Array.isArray(t.initialValues)) {
+          if (t.initialValues.includes(optionValue)) {isInitial = true;}
+        } else if (Array.isArray(t.initials)) {
+          if (t.initials.includes(t.options[idx])) {isInitial = true;}
+        }
+      }
+      //console.log('createOption', value, initialValue, t.initials, t.initialValues, optionValue, isInitial);
+      const option = createEl(parent, 'div', {
+        class: 'select-option' + (isInitial ? ' selected active' : ''),
+        role: 'option',
+        'aria-selected': isInitial ? 'true' : 'false',
+        'aria-disabled': 'false',
+        style: `height: ${t.optionHeight}px;`,
+        'data-value': optionValue
+      });
+      const optionText = createEl(option, 'div', {class: 'select-option-item'});
+      if (t.multiSelect) {
+        const label = createEl(optionText, 'label');
+        const chkBox = createEl(label, 'input', {type: 'checkbox', class: 'form-check-input'});
+        if (isInitial) {chkBox.checked = true;}
+      }
+      if (idx < t.preOptions.length) {
+        createEl(optionText, 'span', {
+          innerHTML: t.preOptions[idx],
+          class: 'select-pre-option-text'}
+        );
+      }
+      createEl(optionText, 'span', {innerHTML: value, class: 'select-option-text'});
+      if (idx < t.postOptions.length) {
+        createEl(optionText, 'span', {
+          innerHTML: t.postOptions[idx],
+          class: 'select-post-option-text'}
+        );
+      }
+    }
+
+    getSelectedValues () {
+      const t = this;
+      if (t.multiSelect) {
+        let result = [];
+        const selectedOptions = t.select.querySelectorAll('.select-option.selected');
+        for (let i = 0; i < selectedOptions.length; i++) {
+          result.push(selectedOptions[i].getAttribute('data-value'));
+        }
+        return result;
+      } else {
+        const selected = this.select.querySelector('.select-option.selected');
+        const result = !!selected ? selected.getAttribute('data-value') : '';
+        return [result];
+      }
+    };
+
+    getSelectedTexts () {
+      const t = this;
+      if (t.multiSelect) {
+        let result = [];
+        const selectedOptions = t.select.querySelectorAll('.select-option.selected .select-option-text');
+        for (let i = 0; i < selectedOptions.length; i++) {
+          result.push(selectedOptions[i].textContent);
+        }
+        return result;
+      } else {
+        const selected = t.select.querySelector('.select-option.selected .select-option-text');
+        const result = !!selected ? selected.textContent : '';
+        return [result];
+      }
+    };
+
+    getSelectedValue () {
+      const result = this.getSelectedValues();
+      return result.join(', ');
+    };
+
+    getSelectedText () {
+      const result = this.getSelectedTexts();
+      return result.join(', ');
+    };
+
+    init () {
+      const t = this;
+      // In order for dropdown to have the same width as input,
+      // 1. Hide the original input and create a new input under a wrapper
+      // 2. Create a connection between the original input and the newly created input
+      const docFrag = document.createDocumentFragment();
+      t.selectWrapper = createEl(docFrag, 'div', {
+        class: 'select-container' + (t.containerClass ? ' ' + t.containerClass : ''),
+        style: 'position:relative;',
+        'data-expanded': 'false',
+      });
+      const rid = randomId();
+      if (t.originalInput) {
+        t.input = t.originalInput.cloneNode();
+        t.input.type = 'select';
+        t.input.name = `${t.originalInput.name}-${rid}`;
+        t.input.id = `id_${t.originalInput.name}-${rid}`;
+        t.selectWrapper.appendChild(t.input);
+        t.originalInput.classList.add('d-none');
+      } else {
+        t.input = createEl(t.selectWrapper, 'input', {
+          type: 'select',
+          name: `${t.inputName}-${rid}`,
+          id: `id_${t.inputName}-${rid}`,
+          class: t.inputClass,
+        });
+      }
+
+      if (t.disabled === true) {t.input.disabled = true;}
+      if (t.readOnly === true) {t.input.readOnly = true; t.input.classList.add('text-select-none');}
+      if (t.placeholder) {t.input.placeholder = t.placeholder;}
+
+      t.select = createEl(t.selectWrapper, 'div', {
+        'class': 'select-dropdown-container',
+        'style': 'min-width: ' + t.selectWidth
+      });
+      const dropdown = createEl(t.select, 'div', {'class': 'select-dropdown'});
+
+      if (t.hasSearch) {
+        const ig = createEl(dropdown, 'div', {'class': 'input-group'});
+        t.search = createEl(ig, 'input', {
+          'type': 'text',
+          'role': 'searchbox',
+          'placeholder': 'Search...',
+          'class': 'form-control select-filter-input'
+        });
+        t.search.addEventListener('input', (e) => t.filterOptions(e.target.value));
+      }
+
+      t.optionWrapper = createEl(dropdown, 'div', {
+        'class': 'select-options-wrapper',
+        'style': `max-height: ${t.optionsHeight}px;`
+      });
+      t.optionList = createEl(t.optionWrapper, 'div', {'class': 'select-option-list',});
+
+      const initial = t.setAndGetInitialValue();
+      for (let i = 0; i < t.options.length; i++) {
+        t.createOption(t.optionList, t.options[i], initial, i);
+      }
+
+      if (t.originalInput) {
+        t.originalInput.insertAdjacentElement('afterend', t.selectWrapper);
+      } else {
+        t.container.appendChild(docFrag);
+      }
+
+      document.addEventListener('click', (e) => {
+        //console.log('clicked', e.target, e.target.parentNode);
+        if (t.select.contains(e.target)) {
+          const selectOption = e.target.closest('.select-option');
+          if (!!selectOption) {
+            const optionText = selectOption.querySelector('.select-option-text');
+            if (t.multiSelect) {
+              if (selectOption.classList.contains('selected')) {
+                selectOption.classList.remove('selected');
+                selectOption.querySelector("input.form-check-input").checked = false;
+              } else {
+                selectOption.classList.add('selected');
+                selectOption.querySelector("input.form-check-input").checked = true;
+              }
+              t.setValue(t.getSelectedText());
+            } else {
+              t.setValue(optionText.textContent);
+              t.reset();
+              selectOption.classList.add('selected');
+              t.hide();
+            }
+          }
+        } else if (t.input.contains(e.target) || (e.target === t.selectWrapper && !e.composedPath().includes(t.select))) {
+          if (t.readOnly) {
+            t.toggle();
+          } else {
+            t.show();
+          }
+        } else {
+          t.hide();
+        }
+      });
+
+      t.input.addEventListener('input', (e) => {
+        t.filterOptions(e.target.value)
+      });
+
+    };
+
+    setAndGetInitialValue () {
+      const t = this;
+      if (t.initialValue && t.optionValues.includes(t.initialValue)) {
+        const initial = t.options[t.optionValues.indexOf(t.initialValue)];
+        t.setValue(initial);
+        return t.initialValue;
+      } else if (t.initial && t.options.includes(t.initial)) {
+        const initialValue = !!t.optionValues ? t.optionValues[t.options.indexOf(t.initial)] : t.initial;
+        t.setValue(t.initial);
+        return initialValue;
+      } else {
+        t.setValue('');
+        return null;
+      }
+    }
+
+    filterOptions (searchValue) {
+      const t = this;
+      t.optionList.querySelectorAll('.select-option-item').forEach((element) => {
+        if (!element.textContent.toLowerCase().includes(searchValue.toLowerCase())) {
+          element.parentElement.classList.add('d-none');
+        } else {
+          element.parentElement.classList.remove('d-none');
+        }
+      });
+    }
+
+    reset () {
+      this.select.querySelectorAll('.select-option').forEach((element) => {
+        element.classList.remove('selected');
+      });
+    }
+
+    toggle () {
+      const t = this;
+      if (t.select.classList.contains('active')) {
+        t.hide();
+      } else {
+        t.show();
+      }
+    }
+
+    async show () {
+      // TODO: it doesn't take into account the multiple options
+      const t = this;
+      if (!!t.select) {
+        if (typeof t.beforeShow === 'function') {
+          if (isAsync(t.beforeShow)) {
+            await t.beforeShow(t);
+          } else {
+            t.beforeShow(t);
+          }
+        }
+        const dropdownHeight = t.optionsHeight;
+        const windowHeight = window.innerHeight;
+        const dropdownRect = t.input.getBoundingClientRect();
+        if ((dropdownRect.top > windowHeight - dropdownRect.bottom) && (windowHeight - dropdownRect.top < dropdownHeight)) {
+          // dropdown position on top
+          t.select.style.bottom = '100%'
+          t.select.style.top = 'auto'
+        } else {
+          // dropdown position at bottom
+          t.select.style.bottom = 'auto'
+          t.select.style.top = '100%'
+        }
+        t.select.classList.add('active');
+        t.selectWrapper.setAttribute('data-expanded', 'true');
+        if (t.input.value || t.initialScroll) {
+          const scrollTo = t.input.value || t.initialScroll;
+          const options = t.select.querySelectorAll('.select-option .select-option-text');
+          for (let i = 0; i < options.length; i++) {
+            if (options[i].innerHTML === scrollTo) {
+              const optEl = options[i].closest('.select-option');
+              t.optionWrapper.scrollTop = optEl.offsetTop - optEl.parentNode.offsetTop;
+              break;
+            }
+          }
+        }
+
+        t.beforeOptions = t.getSelectedTexts();
+      }
+    }
+
+    hide () {
+      const t = this;
+      if (t.select.classList.contains('active')) {
+        t.select.classList.remove('active');
+        t.selectWrapper.setAttribute('data-expanded', 'false');
+        // TODO: update this
+        const afterOptions = t.getSelectedTexts();
+        if (!arrayCompare(afterOptions, t.beforeOptions)) {
+          if (t.originalInput && typeof t.originalInput.onchange === 'function') {t.originalInput.onchange();}
+          if (typeof t.onchange === 'function') {t.onchange();}
+        }
+        t.beforeOptions = [];
+      }
+    }
+
+    updateOptions (data) {
+      // It was used to update the select options after Select is created
+      const t = this;
+      t.options = data.options;
+      t.optionValues = data.values;
+      const initial = t.setAndGetInitialValue();
+      while (t.optionList.firstChild) {t.optionList.firstChild.remove();}
+      for (let i = 0; i < t.options.length; i++) {
+        t.createOption(t.optionList, t.options[i], initial, i);
+      }
+    }
+
+    destroy () {
+      this.input.value = this.getSelectedText();
+      this.select.remove();
+    };
+
+    setValue (value) {
+      const t = this;
+      if (t.originalInput) {t.originalInput.value = value;}
+      t.input.value = value;
+      if (!t.multiSelect) {
+        t.select.querySelectorAll('.select-option').forEach((e) => {
+          if (e.textContent === value) {
+            e.classList.add('selected');
+          } else {
+            e.classList.remove('selected');
+          }
+        });
+      }
+    }
+
+    value () {
+      const t = this;
+      let values = [];
+      t.select.querySelectorAll('.select-option.selected').forEach((e) => {
+        values.push(e.getAttribute('data-value'));
+      });
+      return values;
+    }
+
+  }
+
+  /* Upload Field */
+  const isValidImageFile = function (file) {
+    const validImageTypes = ['image/gif', 'image/jpeg', 'image/png'];
+    return validImageTypes.includes(file['type']);
+  };
+
+  const compressImage = async (file, maxImageSize, {quality = 1, type = file.type}) => {
+    //console.log('compressImage', quality, type);
+    if (file.size > maxImageSize) {
+      quality = maxImageSize/file.size;
+      // console.log('compressImage', quality, file.size);
+      // Get as image data
+      const imageBitmap = await createImageBitmap(file);
+
+      // Draw to canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = imageBitmap.width;
+      canvas.height = imageBitmap.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(imageBitmap, 0, 0);
+
+      // Turn into Blob
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, type, quality)
+      );
+
+      // Turn Blob into File
+      return new File([blob], file.name, {type: blob.type,});
+    } else {
+      return file;
+    }
+  };
+
+  /* Search Select Field */
+  function SearchSelectField (options) {
+    const t = this;
+    t.config(options);
+    t.init();
+  }
+
+  SearchSelectField.prototype.config = function (s) {
+    const t = this;
+    t.label = s.label;
+    t.id = s.id;
+    t.name = s.name;
+    t.type = 'text';
+    t.class = s.class || 'form-control';
+    t.fieldWrapperClass = s.fieldWrapperClass || 'form-group';
+    t.initial = s.initial;
+    t.helpText = s.helpText;
+    t.options = s.options;
+  };
+
+  SearchSelectField.prototype.init = function () {
+    const t = this;
+    t.fieldEl = document.createDocumentFragment();
+    t.fieldWrapper = createEl(t.fieldEl, 'div', {class: t.fieldWrapperClass});
+    createEl(t.fieldWrapper, 'label', {
+      class: 'form-label',
+      innerHTML: t.label,
+      for: t.id,
+    });
+    t.input = createEl(t.fieldWrapper, 'input', {type: 'text', name: t.name, id: t.id, class: t.class,});
+    if (!!t.initial) t.input.value = t.initial;
+    if (!!t.helpText) {
+      createEl(t.fieldWrapper, 'small', {innerHTML: t.helpText});
+    }
+
+    t.SearchSelect = new app.SearchSelect(t.input, {
+      options: t.options,
+      multiSelect: true,
+      selectWidth: '100%'
+    });
+  };
+
+  SearchSelectField.prototype.renderValid = function () {
+    const t = this;
+    classList(t.input).remove('is-invalid').add('is-valid');
+    if (t.error) t.error.remove();
+  };
+
+  SearchSelectField.prototype.renderInvalid = function (error) {
+    const t = this;
+    classList(t.input).remove('is-valid').add('is-invalid');
+    if (t.error) t.error.remove();
+    t.error = createEl(t.fieldWrapper, 'div', {class: 'invalid-feedback', innerHTML: error});
+  }
+
+  SearchSelectField.prototype.removeError = function () {
+    const t = this;
+    classList(t.input).remove('is-valid').remove('is-invalid');
+    if (t.error) t.error.remove();
+  }
+
+  SearchSelectField.prototype.appendFormData = function (formData) {
+    formData.append(this.name, this.input.value);
+  }
+
+
+  /* Slider range select */
+  class Slider {
+    constructor(options) {
+      const t = this;
+      t.config(options);
+      t.init();
+    }
+
+    config (s) {
+      const t = this;
+      t.container = s.container;
+      t.input = s.input;
+      t.min = s.min;
+      t.max = s.max;
+      t.step = s.step || 1;
+      t.rangeClass = s.rangeClass;
+      t.inputClass = s.inputClass;
+      t.name = s.name;
+      t.id = s.id || `id_${t.name}`;
+      t.isRange = s.isRange || false;
+      // Track customization
+      t.trackHeight = s.trackHeight || 5;
+      t.trackColor = s.trackColor || '#4471ef';
+      t.trackBgColor = s.trackBgColor || (t.isRange ? '#959595' : t.trackColor);
+      // Thumb customization
+      //t.thumbColor = s.thumbColor || '#fff';
+      //t.thumbBorderColor = s.thumbBorderColor || '#4471ef';
+      // Display: label, tooltip, and reels
+      t.showLabels = s.showLabels || false;
+      t.showTooltip = s.showTooltip || false;
+      t.showReels = s.showReels || false;
+      t.reelsHeight = s.reelsHeight || 32;
+    }
+
+    init () {
+      const t = this;
+      if (!!t.input) {t.input.classList.add('d-none');}
+
+      const docFrag = document.createDocumentFragment();
+      // Slider
+      t.wrapper = createEl(docFrag, 'div', {class: 'slider-wrapper d-flex'});
+      t.slider = createEl(t.wrapper, 'div', {class: 'range-slider'});
+      // Labels
+      if (t.showLabels) {
+        const rangeLabels = createEl(t.slider, 'div', {class: 'range-labels'});
+        t.rangeLabelStart = createEl(rangeLabels, 'span', {
+          class: 'range-label range-label-start',
+          innerHTML: t.min,
+        });
+        t.rangeLabelEnd = createEl(rangeLabels, 'span', {
+          class: 'range-label range-label-end',
+          innerHTML: t.max,
+        });
+      }
+      // Inputs
+      t.inputStartMax = t.isRange ? Number(t.max) - 1 : Number(t.max);
+      t.inputStart = createEl(t.slider, 'input', {
+        type: 'range',
+        name: `${t.name}-start`,
+        id: `${t.id}-start`,
+        min: t.min,
+        max: t.inputStartMax,
+        value: t.min,
+      });
+      t.inputStart.style.height = `${t.trackHeight}px`;
+      const trackWrapper = createEl(t.slider, 'div', {
+        class: 'track-wrapper'
+      });
+      trackWrapper.style.height = `${t.trackHeight}px`;
+      const track = createEl(trackWrapper, 'div', {class: 'track'});
+      track.style.backgroundColor = t.trackBgColor;
+      t.rangeBetween = createEl(trackWrapper, 'div', {class: 'range-between'});
+      t.rangeBetween.style.backgroundColor = t.trackColor;
+      t.thumbLeft = createEl(trackWrapper, 'div', {class: 'thumb left'});
+      //t.setThumbStyles(t.thumbLeft);
+      // Range Selector
+      if (t.isRange) {
+        t.inputEnd = createEl(t.slider, 'input', {
+          type: 'range',
+          name: `${t.name}-end`,
+          id: `${t.id}-end`,
+          min: Number(t.min) + 1,
+          max: t.max,
+          value: t.max,
+        });
+        t.inputEnd.style.height = `${t.trackHeight}px`;
+        t.thumbRight = createEl(trackWrapper, 'div', {class: 'thumb right'});
+        //t.setThumbStyles(t.thumbRight);
+      }
+      // Reels
+      if (t.showReels) {
+        t.reels = createEl(t.wrapper, 'div', {class: 'slider-reels'});
+        //t.reels.style.transform = `translate(0,${Math.round(t.reelsHeight/3)}px)`;
+        t.reels.style.lineHeight = `${t.reelsHeight}px`;
+        t.reels.style.height = `${t.reelsHeight}px`;
+        t.reelsValueWrapper = createEl(t.reels, 'div', {class: 'reels-value-wrapper'});
+        for (let i = t.min; i <= t.max; i++) {
+          createEl(t.reelsValueWrapper, 'div', {class: 'reels-value', innerHTML: i});
+        }
+      }
+      t.container.appendChild(docFrag);
+
+      t.createSlider();
+    }
+
+    createSlider() {
+      const t = this;
+      t.setStartValueCustomSlider();
+      if (t.inputEnd) {t.setEndValueCustomSlider();}
+      t.setEvents();
+    }
+
+    setLabelValue(label, input) {
+      label.innerHTML = `${input.value}`;
+    }
+
+    //setThumbStyles(thumb) {
+    //  const t = this;
+    //  thumb.style.backgroundColor = t.thumbColor;
+    //  thumb.style.border = `2px solid ${t.thumbBorderColor}`;
+    //}
+
+    setStartValueCustomSlider() {
+      const t = this;
+      const endValue = !!t.inputEnd ? parseInt(t.inputEnd.value) - 1 : t.max;
+      const maximum = Math.min(parseInt(t.inputStart.value), endValue);
+      const percent = ((maximum - t.inputStart.min) / (t.inputStartMax - t.inputStart.min)) * 100;
+      t.thumbLeft.style.left = percent + '%';
+      t.rangeBetween.style.left = percent + '%';
+    }
+
+    setEndValueCustomSlider() {
+      const t = this;
+      const minimum = Math.max(parseInt(t.inputEnd.value), parseInt(t.inputStart.value) + 1);
+      const percent = ((minimum - t.inputEnd.min) / (t.inputEnd.max - t.inputEnd.min)) * 100;
+      t.thumbRight.style.right = 100 - percent + '%';
+      t.rangeBetween.style.right = 100 - percent + '%';
+    }
+
+    setEvents() {
+      const t = this;
+      t.inputStart.addEventListener('input', () => {
+        t.setStartValueCustomSlider();
+        if (t.showLabels) {t.setLabelValue(t.rangeLabelStart, t.inputStart);}
+        if (t.reels) {
+          const top = (parseFloat(t.inputStart.value) - parseFloat(t.min))/t.step * - t.reelsHeight;
+          t.reelsValueWrapper.style.marginTop = `${top}px`;
+        }
+      });
+
+      if (t.inputEnd) {
+        t.inputEnd.addEventListener('input', () => {
+          t.setEndValueCustomSlider();
+          if (t.showLabels) {t.setLabelValue(t.rangeLabelEnd, t.inputEnd);}
+        });
+      }
+
+      // add css classes on hover and drag
+      t.inputStart.addEventListener('mouseover', function () {
+        t.thumbLeft.classList.add('hover');
+      });
+      t.inputStart.addEventListener('mouseout', function () {
+        t.thumbLeft.classList.remove('hover');
+      });
+      t.inputStart.addEventListener('mousedown', function () {
+        t.thumbLeft.classList.add('active');
+      });
+      t.inputStart.addEventListener('pointerup', function () {
+        t.thumbLeft.classList.remove('active');
+      });
+      // Mobile
+      t.inputStart.addEventListener('touchstart', function () {
+        t.thumbLeft.classList.add('active');
+      });
+      t.inputStart.addEventListener('touchend', function () {
+        t.thumbLeft.classList.remove('active');
+      });
+
+      if (t.inputEnd) {
+        t.inputEnd.addEventListener('mouseover', function () {
+          t.thumbRight.classList.add('hover');
+        });
+        t.inputEnd.addEventListener('mouseout', function () {
+          t.thumbRight.classList.remove('hover');
+        });
+        t.inputEnd.addEventListener('mousedown', function () {
+          t.thumbRight.classList.add('active');
+        });
+        t.inputEnd.addEventListener('pointerup', function () {
+          t.thumbRight.classList.remove('active');
+        });
+        // Mobile
+        t.inputEnd.addEventListener('touchstart', function () {
+          t.thumbRight.classList.add('active');
+        });
+        t.inputEnd.addEventListener('touchend', function () {
+          t.thumbRight.classList.remove('active');
+        });
+      }
+    }
+
+    getValue () {
+      const t = this;
+      return t.inputEnd ? [t.inputStart.value, t.inputEnd.value] : [t.inputStart.value];
+    }
+
+  }
+
+  const FORM_FIELD_ONCHANGE_EVENT = 'ffoc';
+  const FORM_FIELD_ONVALIDATE_EVENT = 'ffov';
+
+  class FormField {
+    constructor(s) {
+      const t = this;
+      t.container = s.container;
+      t.reverse = s.reverse || false;
+      t.type = s.type;
+      t.tag = t.type === 'textarea' ? 'textarea' : 'input';
+      t.labelText = s.label || '';
+      t.name = s.name;
+      t.id = s.id || `id_${t.name}`;
+      t.size = s.size || 'normal';
+      t.fieldWrapperClass = [s.fieldWrapperClass || 'form-group', s.customFieldWrapperClass || '', s.depClass || ''].join(' ').trim();
+      t.labelClass = s.labelClass || 'form-label';
+      t.inputClass = s.inputClass || 'form-control';
+      if (t.size !== 'normal' && t.inputClass === 'form-control') {
+        if (t.size === 'small') {t.inputClass += ' form-control-sm';}
+        if (t.size === 'large') {t.inputClass += ' form-control-lg';}
+      }
+      t.initial = s.initial;
+      t.helpText = s.helpText;
+      t.inputAttrs = s.inputAttrs || {};
+      t.pattern = s.pattern;
+
+      const docFrag = document.createDocumentFragment();
+      t.fieldWrapper = createEl(docFrag, 'div', {class: t.fieldWrapperClass});
+      if (t.reverse === true) {
+        t.createInput();
+        t.createLabel();
+      } else {
+        t.createLabel();
+        t.createInput();
+      }
+      Object.entries(t.inputAttrs).forEach(([key, value]) => {
+        t.input[key] = value;
+      });
+      if (!!t.initial) {t.input.value = t.initial;}
+      if (!!t.helpText) {
+        const htWrapper = createEl(t.fieldWrapper, 'div', {class: 'form-field-help-text'});
+        createEl(htWrapper, 'small', {innerHTML: t.helpText});
+      }
+      t.container.appendChild(docFrag);
+    }
+
+    createLabel() {
+      const t = this;
+      if (t.type !== 'hidden') {
+        t.label = createEl(t.fieldWrapper, 'label', {
+          class: t.labelClass,
+          innerHTML: t.labelText,
+          for: t.id,
+        });
+      }
+    }
+
+    createInput() {
+      const t = this;
+      t.input = createEl(t.fieldWrapper, t.tag, {
+        name: t.name,
+        id: t.id,
+        class: t.inputClass,
+      });
+      if (t.tag !== 'textarea') {t.input.type = t.type;}
+      t.input.onchange = () => t.onchange();
+      if (t.pattern) {
+        t.input.addEventListener('input', (e) => {
+          if (t.input.value !== '' && !t.pattern.test(t.input.value)) {
+            t.renderInvalid();
+            t.input.dispatchEvent(
+              new CustomEvent(FORM_FIELD_ONVALIDATE_EVENT, {
+                bubbles: true,
+                detail: {valid: false},
+              }),
+            );
+          } else {
+            t.removeError();
+            t.input.dispatchEvent(
+              new CustomEvent(FORM_FIELD_ONVALIDATE_EVENT, {
+                bubbles: true,
+                detail: {valid: true},
+              }),
+            );
+          }
+        });
+      }
+    }
+
+    value () {
+      return this.input.value;
+    }
+
+    setValue (val) {
+      this.input.value = val;
+    }
+
+    onchange () {
+      const t = this;
+      t.input.dispatchEvent(
+        new CustomEvent(FORM_FIELD_ONCHANGE_EVENT, {
+          bubbles: true,
+          detail: {name: t.name, value: t.value()},
+        }),
+      );
+    }
+
+    renderValid () {
+      const t = this;
+      classList(t.input).remove('is-invalid').add('is-valid');
+      if (t.error) t.error.remove();
+    };
+
+    renderInvalid (error) {
+      const t = this;
+      classList(t.input).remove('is-valid').add('is-invalid');
+      if (t.error) t.error.remove();
+      if (!!error) {t.error = createEl(t.fieldWrapper, 'div', {class: 'invalid-feedback', innerHTML: error});}
+    }
+
+    removeError () {
+      const t = this;
+      classList(t.input).remove('is-valid').remove('is-invalid');
+      if (t.error) t.error.remove();
+    }
+
+    appendFormData (formData) {
+      formData.append(this.name, this.value());
+    }
+  }
+
+  /* Hidden Field */
+  class HiddenField extends FormField {
+    constructor(options) {
+      const s = extend(options);
+      s.type = 'hidden';
+      super(s);
+      this.fieldWrapper.classList.add('d-none');
+    }
+  }
+
+  /* Text Field */
+  class TextField extends FormField {
+    constructor(options) {
+      const s = extend(options, {});
+      s.inputAttrs = {};
+      const inputAttrs = s.inputAttributes || {};
+      if (inputAttrs.disabled === true) {s.inputAttrs.disabled = true;}
+      if (!!inputAttrs.placeholder) {s.inputAttrs.placeholder = inputAttrs.placeholder;}
+      super(s);
+    }
+  }
+
+  /* Number Field */
+  class NumberField extends FormField {
+    constructor(options) {
+      const s = extend(options, {});
+      s.inputAttrs = {};
+      const inputAttrs = s.inputAttributes || {};
+      if (inputAttrs.disabled === true) {s.inputAttrs.disabled = true;}
+      super(s);
+    }
+  }
+
+  /* Date Time Field */
+  class DateTimeField extends FormField {
+    // TODO: currently only date field, need to add time field
+    constructor(options) {
+      const s = extend(options);
+      s.type = 'text';
+      super(s);
+      const t = this;
+      t.xPosition = s.xPosition || 'right';
+      t.yPosition = s.yPosition || 'bottom';
+      t.xOffset = s.xOffset || 0;
+      t.yOffset = s.yOffset || 0;
+      t.firstdate = s.firstdate || new Date(1900, 1, 1);
+      // t.initial is a string assigned to t.input;
+      // Convert it into JS Date object for DateTimePicker
+      const dt = toJsDate(t.initial);
+      t.initialdate = isValidDate(dt) ? dt : null;
+      t.formatDate = s.formatDate;
+
+      // For DateTimePicker to position correctly,
+      // we have to set wrapper position = relative;
+      //t.fieldWrapper.style = "position: relative";
+      t.fieldWrapper.classList.add('position-relative');
+      t.pickerId = !!document.getElementById(`dt-picker-${t.input.name}`) ? `dt-picker-${t.input.name}` : t.id;
+      // Class FormField has assigned t.input.onchange.
+      // DateTimePicker will execute this function when there is a change
+      t.picker = new DateTimePicker(
+        t.input, {
+          dtpickerId: t.pickerId,
+          frameId: `dt-picker-frame-${t.input.name}`,
+          xPosition: t.xPosition,
+          yPosition: t.yPosition,
+          xOffset: t.xOffset,
+          yOffset: s.yOffset,
+          firstdate: t.firstdate,
+          initialdate: t.initialdate,
+        }
+      );
+    }
+
+    value() {
+      // TODO: update
+      //return this.picker.getDate();
+      // Still use input value as picker will update input if changed
+      return this.input.value;
+    }
+
+    setValue(date) {
+      // DateTimePicker use JS Date objects
+      // TODO: update
+      const jsDt = toJsDate(date);
+      if (isValidDate(jsDt)) {
+        this.picker.setDate(toJsDate(date));
+      }
+    }
+
+    appendFormData (formData) {
+      const t = this;
+      const value = typeof t.formatDate === 'function' ? (t.formatDate(t.value()) || '') : t.value();
+      formData.append(this.name, value);
+    }
+
+    destroy () {
+      this.picker.destroy();
+    }
+  }
+
+  /* File Field */
+  class FileField extends FormField {
+    constructor(options) {
+      const s = extend(options);
+      const fileType = s.type;
+      s.type = 'file';
+      s.fieldWrapperClass = (s.fieldWrapperClass || '') + ' upload-field';
+      s.inputAttrs = {};
+      const inputAttrs = s.inputAttributes || {};
+      if (inputAttrs.multiple === true) {s.inputAttrs.multiple = true;}
+      if (inputAttrs.disabled === true) {s.inputAttrs.disabled = true;}
+      super(s);
+      const t = this;
+      t.fileType = fileType || 'file';
+      if (t.fileType === 'image') {t.input.setAttribute('accept', 'image/*');}
+      t.multiple = s.multiple;
+      t.url = s.url || getBaseUrl();
+      t.initial = s.initial;
+      t.useChooseButton = s.useChooseButton || false;
+      t.showDragAndDrop = s.showDragAndDrop || false;
+      t.showSummary = s.showSummary || false;
+      t.instantUpload = s.instantUpload || false;
+      t.showPreview = s.showPreview || false;
+      t.onchangeCb = s.onchangeCb;
+      t.onuploadCb = s.onuploadCb;
+
+      if (t.useChooseButton === true) {
+        t.fieldLabel = document.createElement('div');
+        classList(t.fieldLabel).add('upload-field-label').add('d-block').add('mb-2');
+        t.fieldLabel.innerHTML = t.labelText;
+        t.fieldWrapper.prepend(t.fieldLabel);
+        t.label.classList.add('upload-file-label');
+        t.label.innerHTML = '<span class="material-symbols-outlined">upload_file</span>Choose File';
+        t.input.classList.add('upload-file-input');
+      }
+
+      if (t.showPreview === true && !!t.initial) {
+        t.updatePreview([t.initial]);
+      }
+
+      if (t.showDragAndDrop === true) {
+        const docFrag = document.createDocumentFragment();
+        createEl(docFrag, 'div', {class: 'upload-field-center', innerHTML: 'OR'})
+        t.dragnDropZone = createEl(docFrag, 'div', {class: 'drag-n-drop-zone'});
+        createEl(t.dragnDropZone, 'span', {
+          class: 'material-symbols-outlined dnd-zone-inner',
+          innerHTML: 'cloud_upload'
+        });
+        createEl(t.dragnDropZone, 'div', {
+          class: 'dnd-zone-inner',
+          innerHTML: 'Drag and drop your file here'
+        });
+        t.fieldWrapper.appendChild(docFrag);
+      }
+
+      // Events
+      // Initialize number of files
+      t.numOfFiles = 0;
+      t.input.onchange = async function () {
+        await t.updateInputFiles(this.files);
+        t.afterFileInput();
+      };
+      if (t.showDragAndDrop === true) {t.addDragAndDropEvents();}
+
+    }
+
+    onchange () {
+      const t = this;
+      if (t.reverse === true) {
+        // For a reverse file input field, label is used to show selected file(s)
+        if (!!t.label) {
+          if (!!t.input.value) {
+            const path = t.input.value,
+              idx = path.indexOf('\\') >= 0 ? path.lastIndexOf('\\') : path.lastIndexOf('/');
+            let filename = path.substring(idx);
+            if (filename.indexOf('\\') === 0 || filename.indexOf('/') === 0) {filename = filename.substring(1);}
+            t.label.innerHTML = filename;
+          } else {
+            t.label.innerHTML = 'Choose File';
+          }
+        }
+      }
+      if (typeof t.onchangeCb === 'function') {t.onchangeCb();}
+      super.onchange();
+    }
+
+    appendFormData (formData) {
+      const t = this;
+      for (let i = 0; i < t.input.files.length; i++) {
+        formData.append(t.name, t.input.files[i]);
+      }
+    }
+
+    async updateInputFiles (newFiles, drop = false) {
+      const t = this;
+      let newDt = new DataTransfer();
+      if (t.multiple && drop) {
+        for (let i = 0; i < t.input.files.length; i++) {
+          newDt.items.add(t.input.files[i]);
+        }
+      }
+      let numOfValidFiles = 0;
+      if (newFiles.length > 0) {
+        const length = t.multiple ? newFiles.length : 1;
+        for (let i = 0; i < length; i++) {
+          if ((t.fileType === 'image' && isValidImageFile(newFiles[i]))) {
+            const file = await compressImage(newFiles[i], t.maxImageSize, {});
+            newDt.items.add(file);
+            numOfValidFiles++;
+          } else if (t.fileType === 'file') {
+            newDt.items.add(newFiles[i]);
+            numOfValidFiles++;
+          }
+        }
+      }
+      // update input files
+      if (numOfValidFiles > 0) {
+        t.input.files = newDt.files;
+        t.onchange();
+      }
+    }
+
+    createSummary () {
+      const t = this;
+      if (t.showSummary === true) {
+        if (t.summary) {
+          t.summary.remove();
+        }
+        t.fileDeletes = [];
+        const sumTag = t.multiple ? 'ul' : 'div',
+          itemTag = t.multiple ? 'li' : 'div';
+        t.summary = createEl(t.fieldWrapper, sumTag, {class: 'file-summary'});
+        for (let i = 0; i < t.input.files.length; i++) {
+          const item = createEl(t.summary, itemTag);
+          createEl(item, 'span', {class: 'material-symbols-outlined mso-sm', innerHTML: 'attach_file'});
+          createEl(item, 'span', {class: 'summary-file-name', innerHTML: t.input.files[i].name});
+          const del = createEl(item, 'span', {class: 'delete-file-input', innerHTML: '×'});
+          t.fileDeletes.push(del);
+        }
+        // addEventListener to delete
+        t.fileDeletes.forEach(e => {
+          e.onclick = function () {
+            const fnEl = e.parentElement.querySelector('span.summary-file-name');
+            if (fnEl) {
+              const newDt = new DataTransfer();
+              for (let i = 0; i < t.input.files.length; i++) {
+                if (t.input.files[i].name === fnEl.innerHTML) {
+                  e.parentElement.remove();
+                } else {
+                  newDt.items.add(t.input.files[i]);
+                }
+              }
+              t.input.files = newDt.files;
+              t.onchange();
+              // Image Preview
+              if (t.showPreview) {
+                const srcUrls = [];
+                for (let i = 0; i < t.input.files.length; i++) {
+                  srcUrls.push(URL.createObjectURL(t.input.files[i]));
+                }
+                t.updatePreview(srcUrls);
+              }
+            }
+          };
+        });
+      }
+    }
+
+    updatePreview (srcUrls) {
+      const t = this;
+      if (t.preview) {t.preview.remove();}
+      if (srcUrls.length > 0) {
+        const docFrag = document.createDocumentFragment();
+        t.preview = createEl(docFrag, 'div', {class: 'image-preview'});
+        for (let i = 0; i < srcUrls.length; i++) {
+          const imgContainer = createEl(t.preview, 'div', {class: 'image-container'});
+          createEl(imgContainer, 'img', {src: srcUrls[i]});
+        }
+        t.fieldWrapper.insertBefore(docFrag, t.label);
+      }
+    }
+
+    afterFileInput () {
+      const t = this;
+      // TODO: need to check file is valid image or file
+      t.createSummary();
+      // Instant Upload
+      if (t.instantUpload) {
+        // TODO: incomplete
+        const data = new FormData();
+        data.append(t.name, t.input.files[0]);
+        API.XHR(t.url, {
+          data: data,
+          contentType: 'multipart/form-data',
+          cb: (json) => {
+            if (typeof t.onuploadCb === 'function') {t.onuploadCb(json);}
+          },
+          errorCb: (json) => {
+            // Append error to t.fieldWrapper
+            if (t.error) t.error.remove();
+            t.error = createEl(t.fieldWrapper, 'div', {
+              class: 'text-danger',
+              innerHTML: json.error
+            });
+          }
+        });
+      }
+      // Image Preview
+      if (t.showPreview) {
+        const srcUrls = [];
+        for (let i = 0; i < t.input.files.length; i++) {
+          srcUrls.push(URL.createObjectURL(t.input.files[i]));
+        }
+        t.updatePreview(srcUrls);
+      }
+    }
+
+    addDragAndDropEvents () {
+      const t = this;
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        t.dragnDropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+        }, false);
+      });
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        t.dragnDropZone.addEventListener(eventName, (e) => {
+          if (e.target.classList.contains('drag-n-drop-zone')){
+            e.target.classList.add('highlight');
+          } else if (e.target.classList.contains('dnd-zone-inner')) {
+            e.target.parentNode.classList.add('highlight');
+          }
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        t.dragnDropZone.addEventListener(eventName, (e) => {
+          if (e.target.classList.contains('drag-n-drop-zone')) {
+            e.target.classList.remove('highlight');
+          } else if (e.target.classList.contains('dnd-zone-inner')) {
+            e.target.parentNode.classList.remove('highlight');
+          }
+        }, false);
+      });
+
+      t.dragnDropZone.addEventListener('drop', async function (e) {
+        let dt = e.dataTransfer;
+        let files = [...dt.files];
+        await t.updateInputFiles(files, true);
+        t.afterFileInput();
+      }, false);
+    }
+  }
+
+  const formatUTCOffset = function (offset) {
+    return `(UTC${parseInt(offset) >= 0 ? '+' : ''}${parseInt(offset)}:00) `;
+  }
+
+  /* Select Field */
+  class SelectField extends FormField {
+    constructor(options) {
+      const s = extend(options);
+      // TODO: inputAttrs can be something in FormField
+      s.inputAttrs = {};
+      const inputAttrs = s.inputAttributes || {};
+      if (inputAttrs.disabled === true) {s.inputAttrs.disabled = true;}
+      super(s);
+      const t = this;
+      const optionWithValue = s.options.every(v => Array.isArray(v) && v.length >= 2);
+      if (optionWithValue) {
+        t.options = [];
+        t.values = [];
+        s.options.forEach(ov => {
+          t.values.push(ov[0]);
+          t.options.push(ov[1]);
+        });
+      } else {
+        t.options = s.options;
+        t.values = s.values;
+      }
+      t.hasValues = !!t.values;
+      t.preOptions = s.preOptions;
+      t.postOptions = s.postOptions;
+      t.multiple = s.multiple || false;
+      t.selectWidth = s.selectWidth || '100%';
+      t.optionsHeight = s.optionsHeight;
+      t.optionHeight = s.optionHeight;
+      //t.values = t.values || t.options.map((x, i) => i + 1);
+      t.initial = s.initial;
+      t.initialValue = s.initialValue;
+      t.select = new Select({
+        options: t.options,
+        optionValues: t.values,
+        preOptions: t.preOptions,
+        postOptions: t.postOptions,
+        selectWidth: t.selectWidth,
+        optionsHeight: t.optionsHeight,
+        optionHeight: t.optionHeight,
+        multiSelect: t.multiple,
+        hasSearch: s.hasSearch || false,
+        disabled: s.disabled || false,
+        readOnly: s.readOnly || false,
+        initial: t.initial,
+        initialValue: t.initialValue,
+        input: t.input,
+        containerClass: s.containerClass,
+        onchange: s.onchange,
+      });
+    }
+
+    value () {
+      const t = this;
+      return t.hasValues ? t.select.getSelectedValues() : t.select.getSelectedTexts();
+    }
+
+    setValue (val) {
+      const t = this;
+      if (t.hasValues) {
+        t.values.forEach((v, idx) => {
+          if (String(val) === String(v)) {
+            t.select.setValue(t.options[idx]);
+          }
+        });
+      } else {
+        t.options.forEach(v => {
+          if (String(val) === String(v)) {
+            t.select.setValue(v);
+          }
+        });
+      }
+    }
+
+    renderValid () {
+      super.renderValid();
+      const t = this;
+      classList(t.select.input).remove('is-invalid').add('is-valid');
+    };
+
+    renderInvalid (error) {
+      super.renderInvalid(error);
+      const t = this;
+      classList(t.select.input).remove('is-valid').add('is-invalid');
+    }
+
+    removeError () {
+      super.removeError();
+      const t = this;
+      classList(t.select.input).remove('is-valid').remove('is-invalid');
+    }
+
+    appendFormData (formData) {
+      const t = this;
+      const name = t.multiple ? `${t.name}[]` : t.name;
+      t.value().forEach(e => {
+        formData.append(name, e);
+      });
+    }
+  }
+
+  class PhoneField extends FormField {
+    constructor(options) {
+      const s = extend(options);
+      s.type = 'text';
+      s.inputAttrs = {};
+      const inputAttrs = s.inputAttributes || {};
+      if (inputAttrs.disabled === true) {s.inputAttrs.disabled = true;}
+      super(s);
+
+      const t = this;
+      t.input.addEventListener('keyup', (e) => {
+        const input = e.target;
+        if (input.value === '(') return true;
+        if (e.keyCode > 36 && e.keyCode < 41) return true;
+        if (e.keyCode === 8) return true;
+        input.value = input.value.replace(/[^0-9]/g, '');
+        if (input.value.length > 0) input.value = '(' + input.value;
+        if (input.value.length > 3) input.value = input.value.splice(4, 0, ')');
+        if (input.value.length > 7) input.value = input.value.splice(8, 0, '-');
+        if (input.value.length > 13) input.value = input.value.substring(0, 13);
+        return true;
+      });
+    }
+  }
+
+  class TextareaField extends FormField {
+    constructor(options) {
+      const s = extend(options);
+      s.type = 'textarea';
+      s.inputAttrs = {};
+      const inputAttrs = s.inputAttributes || {};
+      if (inputAttrs.disabled === true) {s.inputAttrs.disabled = true;}
+      if (!!inputAttrs.placeholder) {s.inputAttrs.placeholder = inputAttrs.placeholder;}
+      if (!!inputAttrs.rows) {s.inputAttrs.rows = inputAttrs.rows;}
+      if (!!inputAttrs.cols) {s.inputAttrs.cols = inputAttrs.cols;}
+      super(s);
+      const t = this;
+      t.autogrow = typeof s.autogrow === 'boolean' ? s.autogrow : false;
+      if (t.autogrow === true) {
+        t.input.setAttribute('rows', '1');
+        t.input.setAttribute('style', 'height:' + (t.input.scrollHeight) + 'px;overflow-y:hidden;');
+        t.input.addEventListener('input', (e) => {
+          t.input.style.height = 'auto';
+          t.input.style.height = (t.input.scrollHeight) + 'px';
+        });
+      }
+    }
+  }
+
+  class CheckField extends FormField {
+    constructor(options) {
+      const s = extend({
+        reverse: true,
+        labelClass: 'form-check-label',
+        inputClass: 'form-check-input',
+        customFieldWrapperClass: 'form-check',
+      }, options);
+      s.inputAttrs = {};
+      const inputAttrs = s.inputAttributes || {};
+      if (inputAttrs.checked === true) {s.inputAttrs.checked = true;}
+      if (inputAttrs.disabled === true) {s.inputAttrs.disabled = true;}
+      super(s);
+    }
+
+    value () {
+      return this.input.checked;
+    }
+
+    setValue (val) {
+      if (typeof val === 'boolean') {
+        this.input.checked = val;
+      } else {
+        console.log(`[CheckField.setValue]Invalid value ${val}`);
+      }
+    }
+  }
+
+  /* A ChecksField is a series of CheckField with the same name */
+  class ChecksField {
+    constructor(options) {
+      const s = extend(options);
+      const t = this;
+      t.container = s.container;
+      t.type = s.type === 'multicheck' ? 'checkbox' : 'radio';
+      t.checks = [];
+      t.labelText = s.label;
+      t.name = s.name;
+      t.id = s.id || `id_${t.name}`;
+      t.initials = s.initials || [];
+
+      const optionWithValue = s.options.every(v => Array.isArray(v) && v.length >= 2);
+      if (optionWithValue) {
+        t.labels = [];
+        t.values = [];
+        s.options.forEach(ov => {
+          t.values.push(ov[0]);
+          t.labels.push(ov[1]);
+        });
+      } else {
+        t.labels = s.options;
+        t.values = s.values;
+      }
+
+      if (Array.isArray(s.initials)) {
+        t.initials = s.initials.map(i => String(i));
+      }
+      t.fieldWrapperClass = s.fieldWrapperClass || 'form-group';
+
+      const docFrag = document.createDocumentFragment();
+      t.fieldWrapper = createEl(docFrag, 'div', {
+        class: t.fieldWrapperClass,
+      });
+      if (t.label) {
+        t.label = createEl(t.fieldWrapper, 'div', {innerHTML: t.labelText});
+      }
+      for (let i = 0; i < t.labels.length; i++) {
+        const val = (t.values && i < t.values.length) ? t.values[i] : t.labels[i];
+        const opts = {
+          container: t.fieldWrapper,
+          type: t.type,
+          label: t.labels[i],
+          name: t.name,
+          id: `${t.id}_${i + 1}`,
+          //value: val,
+          inputAttributes: {
+            checked: t.initials.includes(String(val))
+          },
+          fieldWrapperClass: ''
+        };
+        t.checks.push(new CheckField(opts));
+      }
+      t.container.appendChild(docFrag);
+    }
+
+    value () {
+      const t = this;
+      const arr = [];
+      for (let i = 0; i < t.checks.length; i++) {
+        if (t.checks[i].input.checked) {
+          const val = (t.values && i < t.values.length) ? t.values[i] : t.labels[i];
+          arr.push(val);
+        }
+      }
+      return arr;
+    }
+
+    setValue (val) {
+      const t = this;
+      for (let i = 0; i < t.checks.length; i++) {
+        const value = (t.values && i < t.values.length) ? t.values[i] : t.labels[i];
+        if (value === val) {
+          t.checks[i].input.checked = true;
+          break;
+        }
+      }
+    }
+
+    renderValid () {
+      const t = this;
+      t.checks.forEach(chk => {
+        classList(chk.input).remove('is-invalid').add('is-valid');
+      });
+      if (t.error) t.error.remove();
+    };
+
+    renderInvalid (error) {
+      const t = this;
+      t.checks.forEach(chk => {
+        classList(chk.input).remove('is-valid').add('is-invalid');
+      });
+      if (t.error) t.error.remove();
+      t.error = createEl(t.fieldWrapper, 'div', {class: 'invalid-feedback', innerHTML: error});
+    }
+
+    removeError () {
+      const t = this;
+      t.checks.forEach(chk => {
+        classList(chk.input).remove('is-valid').remove('is-invalid');
+      });
+      if (t.error) t.error.remove();
+    }
+
+    appendFormData (formData) {
+      const t = this;
+      formDataAppendArr(formData,t.name, t.value());
+    }
+  }
+
+  /* Slider Field */
+  class SliderField extends FormField {
+    constructor(options) {
+      const s = extend(options);
+      s.inputAttrs = {};
+      const inputAttrs = s.inputAttributes || {};
+      if (inputAttrs.disabled === true) {s.inputAttrs.disabled = true;}
+      super(s);
+
+      const t = this;
+      t.input.classList.add('d-none');
+
+      t.min = s.min;
+      t.max = s.max;
+      t.step = s.step;
+      t.isRange = s.isRange || false;
+      t.trackHeight = s.trackHeight || 2;
+      t.showLabels = t.isRange;
+      t.showReels = !t.isRange;
+      t.slider = new Slider({
+        container: t.fieldWrapper,
+        name: `${t.name}-slider`,
+        min: t.min,
+        max: t.max,
+        step: t.step,
+        isRange: t.isRange,
+        trackHeight: t.trackHeight,
+        showLabels: t.showLabels,
+        showReels: t.showReels
+      });
+    }
+
+    value () {
+      return this.slider.getValue();
+    }
+
+    setValue (val) {}
+
+    appendFormData (formData) {
+      const t = this;
+      t.value().forEach(v => {
+        formData.append(t.name, v);
+      });
+    }
+  }
+
+  /* CKEditor Uploading Field */
+  class CKEditorUploadingField {
+    constructor(s) {
+      const t = this;
+      t.container = s.container;
+      t.type = 'ckeditor';
+      t.tag = 'textarea';
+      t.labelText = s.label || '';
+      t.name = s.name;
+      t.id = s.id || `id_${t.name}`;
+      t.size = s.size || 'normal';
+      t.fieldWrapperClass = [s.fieldWrapperClass || 'form-group', s.customFieldWrapperClass || '', s.depClass || ''].join(' ').trim();
+      t.labelClass = s.labelClass || 'form-label';
+      t.inputClass = s.inputClass || 'form-control';
+      if (t.size !== 'normal' && t.inputClass === 'form-control') {
+        if (t.size === 'small') {t.inputClass += ' form-control-sm';}
+        if (t.size === 'large') {t.inputClass += ' form-control-lg';}
+      }
+      t.initial = s.initial;
+      t.helpText = s.helpText;
+      t.inputAttrs = s.inputAttrs || {};
+
+      const docFrag = document.createDocumentFragment();
+      t.fieldWrapper = createEl(docFrag, 'div', {class: t.fieldWrapperClass});
+      const labelWrapper = createEl(t.fieldWrapper, 'div');
+      t.label = createEl(labelWrapper, 'label', {
+        class: t.labelClass,
+        innerHTML: t.labelText,
+        for: t.id,
+      });
+      t.ckeditorWidget = createEl(t.fieldWrapper, 'div', {
+        class: 'django-ckeditor-widget',
+        'data-field-id': t.id,
+        style: 'display: inline-block;'
+      });
+      t.input = createEl(t.ckeditorWidget, t.tag, {
+        name: t.name,
+        id: t.id,
+        class: t.inputClass,
+        'data-processed': 0,
+        'data-config': '{"skin": "moono-lisa", "toolbar_Basic": [["Source", "-", "Bold", "Italic"]], "toolbar_Full": [["Styles", "Format", "Bold", "Italic", "Underline", "Strike", "SpellChecker", "Undo", "Redo"], ["Link", "Unlink", "Anchor"], ["Image", "Flash", "Table", "HorizontalRule"], ["TextColor", "BGColor"], ["Smiley", "SpecialChar"], ["Source"]], "toolbar": "YourCustomToolbarConfig", "height": 291, "width": "100%", "filebrowserWindowWidth": 940, "filebrowserWindowHeight": 725, "toolbar_YourCustomToolbarConfig": [{"name": "document", "items": ["Source", "-", "Templates"]}, {"name": "clipboard", "items": ["Cut", "Copy", "Paste", "PasteText", "PasteFromWord", "-", "Undo", "Redo"]}, {"name": "basicstyles", "items": ["Bold", "Italic", "Underline", "Strike", "Subscript", "Superscript", "-", "RemoveFormat"]}, "/", {"name": "paragraph", "items": ["NumberedList", "BulletedList", "-", "Outdent", "Indent", "-", "Blockquote", "-", "JustifyLeft", "JustifyCenter", "JustifyRight", "JustifyBlock"]}, {"name": "links", "items": ["Link", "Unlink", "Anchor"]}, {"name": "insert", "items": ["Image", "Flash", "Table", "HorizontalRule", "Smiley", "SpecialChar", "PageBreak", "Iframe"]}, "/", {"name": "styles", "items": ["Styles", "Format", "Font", "FontSize"]}, {"name": "colors", "items": ["TextColor", "BGColor"]}, {"name": "tools", "items": ["Maximize", "ShowBlocks"]}], "tabSpaces": 4, "extraPlugins": "uploadimage,div,autolink,autoembed,embedsemantic,autogrow,widget,lineutils,clipboard,dialog,dialogui,elementspath", "extraAllowedContent": {"p h1": {"styles": "text-align"}, "a": {"attributes": "!href"}, "p": {"classes": "text-center"}, "iframe": {"attributes": "allowfullscreen"}, "div": {"attributes": "ytsrc"}}, "language": "en-us"}',
+        'data-external-plugin-resources': '[]',
+        'data-id': t.id,
+        'data-type': 'ckeditortype',
+        style: 'visibility: hidden; display: none;'
+      });
+      if (t.initial) {t.input.value = t.initial;}
+      t.input.onchange = () => t.onchange();
+      t.container.appendChild(docFrag);
+    }
+
+    initialise() {
+      // Called after form docFrag appended to document
+      const t = this;
+      if (t.input.getAttribute('data-processed') === '0' && t.input.id.indexOf('__prefix__') === -1) {
+        t.input.setAttribute('data-processed', '1');
+        const ext = JSON.parse(t.input.getAttribute('data-external-plugin-resources'));
+        for (let j=0; j<ext.length; ++j) {
+          CKEDITOR.plugins.addExternal(ext[j][0], ext[j][1], ext[j][2]);
+        }
+        CKEDITOR.replace(t.id, JSON.parse(t.input.getAttribute('data-config')));
+      }
+    }
+
+    value() {
+      return this.input.value;
+    }
+
+    onchange () {
+      const t = this;
+      t.input.dispatchEvent(
+        new CustomEvent(FORM_FIELD_ONCHANGE_EVENT, {
+          bubbles: true,
+          detail: {name: t.name},
+        }),
+      );
+    }
+
+    appendFormData (formData) {
+      const t = this;
+      if (t.id in CKEDITOR.instances) {
+        CKEDITOR.instances[t.id].updateElement();
+        console.log('appending ckeditor field', this.value());
+        formData.append(this.name, this.value());
+      }
+    }
+  }
+
+  const formDataAppendArr = function (formData, name, arr) {
+    if (arr.length > 0) {
+      arr.forEach(x => {formData.append(name, x);});
+    } else {
+      formData.append(name, '');
+    }
+  }
+
+  /* Form */
+  class Form {
+    constructor(container, options) {
+      const t = this;
+      t.container = container;
+      t.config(options);
+      t.init();
+    }
+
+    config (s) {
+      const t = this;
+      t.FORM_DATA_KEY = 'name';
+      t.FORM_DATA_VALUE = 'value';
+      t.baseUrl = s.baseUrl || getBaseUrl();
+      t.id = `form-${Math.floor(Math.random() * 1000000000).toString()}`;
+      // Form classes
+      t.formClass = s.formClass || 'bs-form';
+      t.fieldWrapperClass = s.fieldWrapperClass || 'form-group';
+      // Form submit
+      t.ajax = typeof(s.ajax) === 'boolean' ? s.ajax : false;
+      t.method = s.method || 'post';
+      t.resetOnSubmit = typeof(s.resetOnSubmit) === 'boolean' ? s.resetOnSubmit : true;
+      t.renderOnError = typeof(s.renderOnError) === 'boolean' ? s.renderOnError : false;
+      t.animateResult = typeof(s.animateResult) === 'boolean' ? s.animateResult : true;
+      t.customMessagePosition = s.customMessagePosition || 'top';
+      t.cb = typeof(s.cb) === 'function' ? s.cb : ()=>{};
+      t.errorCb = typeof(s.errorCb) === 'function' ? s.errorCb : ()=>{};
+      t.onNoChange = typeof(s.onNoChange) === 'function' ? s.onNoChange : ()=>{};
+      t.noChangeMsg = 'No change has been made';
+      // Form data
+      t.fieldData = s.fieldData;
+      // Form submit button
+      t.showSubmitButton = typeof s.showSubmitButton === 'boolean' ? s.showSubmitButton : true;
+      t.submitButtonClass = s.submitButtonClass || 'btn btn-primary form-submit';
+      t.submitButtonText = s.submitButtonText || 'Submit';
+      // Image field specifics
+      t.maxImageSize = s.maxImageSize || 5242880; // 5MB
+      t.showImagePreview = s.showImagePreview || false;
+      // Validators
+      t.validators = s.validators || [];
+      // Misc
+      t.CSRF_FIELD_NAME = 'csrfmiddlewaretoken';
+      // dependencies
+      t.depClassPrefix = '__if__';
+      t.depClassSeparator = '__';
+    }
+
+    init () {
+      const t = this;
+      t.fields = {};
+      const docFrag = document.createDocumentFragment();
+      t.form = createEl(docFrag, 'form', {
+        id: t.id,
+        class: t.formClass,
+        method: t.method,
+        autocomplete: 'off',
+        novalidate: true
+      });
+      if (t.method === 'post') {
+        t.fields[t.CSRF_FIELD_NAME] = new HiddenField({
+          container: t.form,
+          name: t.CSRF_FIELD_NAME,
+          initial: getCookie('csrftoken'),
+        });
+      }
+      for (let i = 0; i < t.fieldData.length; i++) {
+        const name = t.fieldData[i]['name'];
+        const options = extend(true, t.fieldData[i], {
+          container: t.form,
+          fieldWrapperClass: t.fieldWrapperClass
+        });
+        let field;
+        if (t.fieldData[i]['type'] === 'hidden') {
+          field = new HiddenField(options);
+        } else if (t.fieldData[i]['type'] === 'select') {
+          options.inputAttributes = {
+            disabled: t.fieldData[i]['disabled'] || false,
+          };
+          field = new SelectField(options);
+        } else if (t.fieldData[i]['type'] === 'textarea') {
+          options.inputAttributes = {
+            cols: t.fieldData[i]['cols'],
+            rows: t.fieldData[i]['rows'],
+          };
+          field = new TextareaField(options);
+        } else if (t.fieldData[i]['type'] === 'date') {
+          field = new DateTimeField(options);
+        } else if (t.fieldData[i]['type'] === 'file' || t.fieldData[i]['type'] === 'image') {
+          // Field specific options
+          options.inputAttributes = {
+            multiple: t.fieldData[i]['multiple'] || false,
+            disabled: t.fieldData[i]['disabled'] || false,
+          };
+          field = new FileField(options);
+        } else if (t.fieldData[i]['type'] === 'phone') {
+          options.inputAttributes = {
+            disabled: t.fieldData[i]['disabled'] || false,
+          };
+          field = new PhoneField(options);
+        } else if (t.fieldData[i]['type'] === 'checkbox') {
+          options.inputAttributes = {
+            checked: t.fieldData[i]['checked'] || false,
+            disabled: t.fieldData[i]['disabled'] || false,
+          };
+          field = new CheckField(options);
+        } else if (t.fieldData[i]['type'] === 'radio' || t.fieldData[i]['type'] === 'multicheck') {
+          options.inputAttributes = {
+            disabled: t.fieldData[i]['disabled'] || false,
+          };
+          field = new ChecksField(options);
+        } else if (t.fieldData[i]['type'] === 'range') {
+          options.inputAttributes = {
+            disabled: t.fieldData[i]['disabled'] || false,
+          };
+          field = new SliderField(options);
+        } else if (t.fieldData[i]['type'] === 'number') {
+          options.inputAttributes = {
+            disabled: t.fieldData[i]['disabled'] || false,
+          }
+          field = new NumberField(options);
+        } else if (t.fieldData[i]['type'] === 'ckeditor') {
+          field = new CKEditorUploadingField(options);
+        } else {
+          options.inputAttributes = {
+            disabled: t.fieldData[i]['disabled'] || false,
+            placeholder: t.fieldData[i]['placeholder'] || null,
+          }
+          field = new TextField(options);
+        }
+        t.fields[name] = field;
+      }
+      if (t.showSubmitButton) {
+        const btnContainer = createEl(t.form, 'div', {class: 'form-submit-group'});
+        t.submitButton = createEl(btnContainer, 'button', {
+          class: t.submitButtonClass,
+          innerHTML: t.submitButtonText
+        });
+        t.validate();
+      }
+      t.container.appendChild(docFrag);
+
+      t.form.onsubmit = (e) => {
+        e.preventDefault();
+        // TODO: javascript-triggered changes are unable to create form.isChanged();
+        if (t.changed || t.hasChanged()) {
+          if (t.ajax) {
+            t.ajaxSubmit();
+          } else {
+            t.form.submit();
+          }
+        } else {
+          if (t.animateResult) createCustomMessage(t.noChangeMsg);
+          if (typeof t.onNoChange === 'function') t.onNoChange();
+        }
+      };
+
+      // get initial form data
+      t.initial = t.getFormData();
+      t.initialWithDisabledFields = t.getFormDataWithDisabledFields();
+      // set initial visibility
+      for (const [name, field] of Object.entries(t.fields)) {
+        if (field.type !== 'hidden') {
+          t.setVisibility(name, field.value());
+        }
+      }
+      t.addEventListeners();
+    }
+
+    getFormData () {
+      const t = this;
+      const data = new FormData(t.form);
+      const formData = [];
+      for (const [key, value] of data) {
+        formData.push({[t.FORM_DATA_KEY]: key, [t.FORM_DATA_VALUE]: value});
+      }
+      return formData;
+    }
+
+    getJsonData() {
+      const t = this;
+      const jsonData = {};
+      const formData = t.serialize();
+      for (const [key, value] of formData.entries()) {
+        if (key === 'csrfmiddlewaretoken') {continue;}
+        if (key.endsWith('[]')) {
+          const rawKey = key.replace('[]', '');
+          if (jsonData.hasOwnProperty(rawKey)) {
+            jsonData[rawKey].push(value);
+          } else {
+            jsonData[rawKey] = [value];
+          }
+        } else {
+          jsonData[key] = value;
+        }
+      }
+      return jsonData;
+    }
+
+    getFormDataWithDisabledFields() {
+      const t = this;
+      const formData = [];
+      for (const [name, field] of Object.entries(t.fields)) {
+        formData.push({[t.FORM_DATA_KEY]: name, [t.FORM_DATA_VALUE]: field.value()});
+      }
+      return formData;
+    }
+
+    serialize () {
+      const t = this;
+      // When serialize the form, we need to check if upload field,
+      // especially for image, has changed or not.
+      // Allow ImageField to be null for form validation on server.
+      // If UploadField has no change, do not serialize this field.
+      // Each form field must implement method appendFormData
+      const formData = new FormData();
+      Object.values(t.fields).forEach(v => {
+        if (typeof v.appendFormData === 'function') {
+          v.appendFormData(formData);
+        }
+      });
+      return formData;
+    }
+
+    getFieldValues () {
+      const t = this;
+      const fieldValues = {};
+      for (const [k, v] of Object.entries(t.fields)) {
+        fieldValues[k] = v.input.value;
+      }
+      return fieldValues;
+    }
+
+    compareFormData(formData1, formData2) {
+      const t = this;
+      t.formData = t.getFormData();
+      let equal = true;
+      if (formData1.length === formData2.length) {
+        for (let i = 0; i < formData1.length; i++) {
+          if (formData1[i][t.FORM_DATA_KEY] !== formData2[i][t.FORM_DATA_KEY] ||
+            formData1[i][t.FORM_DATA_VALUE] !== formData2[i][t.FORM_DATA_VALUE]) {
+            equal = false;
+            break;
+          }
+        }
+      } else {
+        equal = false;
+      }
+      return equal;
+    }
+
+    hasChanged (includesDisabledFields = false) {
+      const t = this;
+      if (includesDisabledFields) {
+        const formData = t.getFormDataWithDisabledFields();
+        t.changed = !t.compareFormData(formData, t.initialWithDisabledFields);
+      } else {
+        t.formData = t.getFormData();
+        t.changed = !t.compareFormData(t.formData, t.initial);
+      }
+      return t.changed;
+    }
+
+    ajaxSubmit = function () {
+      const t = this;
+      let data, url;
+      if (t.method === 'post') {
+        data = t.serialize();
+        url = t.baseUrl;
+      } else {
+        url = app.urlAddParams(t.baseUrl, t.getFieldValues());
+      }
+      API.XHR(url, {
+        data: data,
+        cb: (json) => {
+          if (json.success) {
+            t.removeErrors();
+            if (t.resetOnSubmit) {t.reset();}
+            if (t.animateResult) {createCustomMessage(json.success, false, 4000, t.customMessagePosition);}
+            if (typeof t.cb === 'function') {t.cb(json);}
+          } else if (json.errors) {
+            if (t.renderOnError) {t.renderFormValidation(json.errors);}
+          } else {
+            if (t.errorCb) {t.errorCb(json);}
+          }
+        }
+      });
+    }
+
+    removeErrors () {
+      const t = this;
+      Object.values(t.fields).forEach(v => {
+        if (v.type !== 'hidden' && (typeof v.removeError === 'function')) {
+          v.removeError();
+        }
+      });
+    }
+
+    reset () {
+      this.form.reset();
+    }
+
+    renderNonFieldErrors () {
+      const t = this;
+      const fieldClassSelector = t.fieldWrapperClass.split(' ').map(e => '.' + e).join('');
+      const firstField = t.form.querySelector(fieldClassSelector);
+      if (firstField) {
+        const docFrag = document.createDocumentFragment();
+        t.nonFieldErrors = createEl(docFrag, 'ul', {class: 'non-field-errors'});
+        t.nonFieldErrorMsgs.forEach(e => {
+          createEl(t.nonFieldErrors, 'li', {class: 'non-field-error', innerHTML: e});
+        });
+        t.form.insertBefore(docFrag, firstField);
+      }
+    }
+
+    renderFormValidation (errors) {
+      const t = this;
+      if ('__all__' in errors) {
+        t.nonFieldErrorMsgs = errors['__all__'].map(e => e.message);
+        t.renderNonFieldErrors();
+      } else {
+        if (t.nonFieldErrors) {
+          t.nonFieldErrors.remove();
+        }
+      }
+      // Field errors
+      Object.values(t.fields).forEach(v => {
+        if (v.type !== 'hidden') {
+          if (v.name in errors) {
+            if (typeof v.renderInvalid === 'function') {v.renderInvalid(errors[v.name][0]['message']);}
+          } else {
+            if (typeof v.renderValid === 'function') {v.renderValid();}
+          }
+        }
+      });
+    }
+
+    validate () {
+      const t = this;
+      t.nonFieldErrorMsgs = [];
+      let isValid = true;
+      for (let i = 0; i < t.validators.length; i++) {
+        const result = t.runValidator(t.validators[i]);
+        if (result !== true) {
+          isValid = false;
+          if (!!t.validators[i].msg) {
+            t.nonFieldErrorMsgs.push(t.validators[i].msg);
+          }
+        }
+      }
+      if (!isValid) {
+        t.renderNonFieldErrors();
+        if (t.submitButton) {
+          classList(t.submitButton).add('disabled');
+        }
+      } else {
+        if (t.nonFieldErrors) {
+          t.nonFieldErrors.remove();
+        }
+        if (t.submitButton) {
+          classList(t.submitButton).remove('disabled');
+        }
+      }
+    }
+
+    getValidatorValue (validator, i) {
+      const t = this;
+      if (validator.hasOwnProperty(`name${i}`)){
+        if (!!t.fields[validator[`name${i}`]]) {
+          return t.fields[validator[`name${i}`]].value();
+        }
+      } else if (validator.hasOwnProperty(`value${i}`)) {
+        return validator[`value${i}`];
+      }
+      return null;
+    }
+
+    runValidator (validator) {
+      const val1 = this.getValidatorValue(validator, 1),
+          val2 = this.getValidatorValue(validator, 2);
+      if (validator['rel'] === 'lt' && val1 < val2) {
+        return true;
+      } else if (validator['rel'] === 'gt' && val1 > val2) {
+        return true;
+      } else if (validator['rel'] === 'eq' && val1 === val2) {
+        return true;
+      } else if (validator['rel'] === 'le' && val1 <= val2) {
+        return true;
+      } else if (validator['rel'] === 'ge' && val1 >= val2) {
+        return true;
+      }
+      return false;
+    }
+
+    validateConditions (classes) {
+      const t = this;
+      let valid = true;
+      for (let i = 0; i < classes.length; i++) {
+        const condition = classes[i].split(t.depClassPrefix)[1];
+        let value = condition.split(t.depClassSeparator),
+          name = value.shift();
+        const field = t.fields[name];
+        if (field) {
+          if (t.getDependencyValue(field.value()) !== t.getDependencyValue(value)) {
+            valid = false;
+            break;
+          }
+        }
+      }
+      return valid;
+    };
+
+    getDependencyValue (fieldValue) {
+      const t = this;
+      if (Array.isArray(fieldValue)) {
+        return fieldValue.map(x => t.getDependencyValue(x)).join(t.depClassSeparator);
+      } else if (isJsDate(fieldValue)) {
+        // TODO: currently no dependency on date
+        return '';
+      } else {
+        return `${fieldValue}`;
+      }
+    }
+
+    setVisibility (fieldName, fieldValue) {
+      const t = this;
+      Object.values(t.fields).forEach(field => {
+        if (field.type !== 'hidden') {
+          // Exclude the classes that are already satisfied
+          const excludedClass = `${t.depClassPrefix}${fieldName}${t.depClassSeparator}${t.getDependencyValue(fieldValue)}`;
+          let classes = field.fieldWrapperClass.split(' ').filter(cls => cls.startsWith(t.depClassPrefix) && cls !== excludedClass);
+          if (t.validateConditions(classes)) {
+            field.fieldWrapper.classList.remove('d-none');
+          } else {
+            field.fieldWrapper.classList.add('d-none');
+          }
+        }
+      });
+    };
+
+    addEventListeners () {
+      const t = this;
+      t.validatorFields = [];
+      t.validators.forEach(v => {
+        if (!!v.name1 && !t.validatorFields.includes(v.name1)) {
+          t.validatorFields.push(v.name1);
+        }
+        if (!!v.name2 && !t.validatorFields.includes(v.name2)) {
+          t.validatorFields.push(v.name2);
+        }
+      });
+      t.validatorFields.forEach(fieldName => {
+        t.fields[fieldName].input.onchange = () => {
+          t.validate();
+        };
+      });
+      // dependencies
+      t.form.addEventListener(FORM_FIELD_ONCHANGE_EVENT, (e) => {
+        t.setVisibility(e.detail.name, e.detail.value);
+      });
+      t.form.addEventListener(FORM_FIELD_ONVALIDATE_EVENT, (e) => {
+        if (t.submitButton) {
+          if (e.detail.valid) {
+            t.submitButton.classList.remove('disabled');
+          } else {
+            t.submitButton.classList.add('disabled');
+          }
+        }
+      });
+    }
+
+    initialiseCKEditor() {
+      const t = this;
+      Object.values(t.fields).forEach(f => {
+        if (f.type === 'ckeditor') {f.initialise();}
+      });
+    }
+
+    destroy() {
+      const t = this;
+      Object.values(t.fields).forEach(f => {
+        if (typeof f.destroy === 'function') {f.destroy();}
+      });
+    }
+  }
+
+
+  /* Material Fields */
+  /* Text Input Field */
+  function MaterialTextInputField (options) {
+    const t = this;
+    t.config(options);
+    t.init();
+  }
+
+  MaterialTextInputField.prototype.config = function (s) {
+    const t = this;
+    t.label = s.label;
+    t.id = s.id;
+    t.name = s.name;
+    t.type = 'text';
+    t.class = s.class || 'field-input material-field';
+    t.fieldWrapperClass = 'field-outer-wrapper' + (isNullOrUndefined(s.fieldWrapperClass) ? '' : ' ' + s.fieldWrapperClass);
+    t.initial = s.initial;
+    t.helpText = s.helpText;
+    t.widgetType = s.widgetType;
+    t.WidgetOptions = s.WidgetOptions || {};
+  };
+
+  MaterialTextInputField.prototype.init = function () {
+    const t = this;
+    t.widget = null;
+    t.fieldEl = document.createDocumentFragment();
+    t.fieldOuterWrapper = createEl(t.fieldEl, 'div', {class: t.fieldWrapperClass});
+    const fieldInnerWrapper = createEl(t.fieldOuterWrapper, 'div', {class: 'field-inner-wrapper'});
+    createEl(fieldInnerWrapper, 'label', {
+      class: 'field-label',
+      innerHTML: t.label,
+      for: t.id,
+    });
+    const fieldInputWrapper = createEl(fieldInnerWrapper, 'div', {class: 'field-input-wrapper'});
+    if (t.widgetType === 'textarea') {
+      t.input = createEl(fieldInputWrapper, 'textarea', {
+        name: t.name,
+        class: t.class,
+        rows: t.WidgetOptions['rows'] || 4,
+      })
+    } else {
+      t.input = createEl(fieldInputWrapper, 'input', {
+        type: 'text', name: t.name, id: t.id, class: t.class
+      });
+    }
+    t.input.addEventListener('focus', (e) => {
+      t.fieldOuterWrapper.classList.add('focused');
+    });
+    t.input.addEventListener('focusout', (e) => {
+      if (!!t.input.value) {t.fieldOuterWrapper.classList.add('filled');}
+      t.fieldOuterWrapper.classList.remove('focused');
+    });
+    t.input.onchange = () => {
+      if (!t.input.value) {
+        t.fieldOuterWrapper.classList.remove('filled');
+      } else {
+        t.fieldOuterWrapper.classList.add('filled');
+      }
+    };
+
+    const fieldset = createEl(fieldInputWrapper, 'fieldset', {class: 'form-fieldset', 'aria-hidden': true});
+    createEl(fieldset, 'legend', {class: 'fieldset-legend', innerHTML: `<span>${t.label}</span>`});
+    if (!!t.initial) t.input.value = t.initial;
+    if (!!t.helpText) {
+      createEl(fieldInnerWrapper, 'small', {innerHTML: t.helpText});
+    }
+    if (t.widgetType === 'date') {
+      t.widget = new DateTimePicker(t.input, {
+        'dtpickerId': `id_${t.name}`,
+        'frameId': `${t.name}-datepicker-frame`,
+        'xPosition': t.WidgetOptions['xPosition'] || 'right',
+        'xOffset': 12,
+        'yPosition': t.WidgetOptions['yPosition'] || 'bottom',
+        'initialdate': t.WidgetOptions['initialdate'],
+      });
+      if (hasValue(t.input.value)) {
+        t.fieldOuterWrapper.classList.add('filled');
+      }
+    }
+  };
+
+  MaterialTextInputField.prototype.value = function () {
+    return this.input.value;
+  };
+
+  MaterialTextInputField.prototype.renderValid = function () {
+    const t = this;
+    classList(t.input).remove('is-invalid').add('is-valid');
+    if (t.error) t.error.remove();
+  };
+
+  MaterialTextInputField.prototype.renderInvalid = function (error) {
+    const t = this;
+    classList(t.input).remove('is-valid').add('is-invalid');
+    if (t.error) t.error.remove();
+    t.error = createEl(t.fieldWrapper, 'div', {class: 'invalid-feedback', innerHTML: error});
+  };
+
+  MaterialTextInputField.prototype.removeError = function () {
+    const t = this;
+    classList(t.input).remove('is-valid').remove('is-invalid');
+    if (t.error) t.error.remove();
+  };
+
+  MaterialTextInputField.prototype.appendFormData = function (formData) {
+    formData.append(this.name, this.input.value);
+  };
+
+  MaterialTextInputField.prototype.setValue = function (value) {
+    const t = this;
+    t.input.value = value;
+    t.input.onchange();
+  }
+
+
+  /* Search Select Field */
+  function MaterialSearchSelectField (options) {
+    const t = this;
+    t.config(options);
+    t.init();
+  }
+
+  MaterialSearchSelectField.prototype.config = function (s) {
+    const t = this;
+    t.label = s.label;
+    t.id = s.id;
+    t.name = s.name;
+    t.type = 'text';
+    t.class = s.class || 'form-control';
+    t.fieldWrapperClass = 'field-outer-wrapper' + (isNullOrUndefined(s.fieldWrapperClass) ? '' : ' ' + s.fieldWrapperClass);
+    t.initial = s.initial;
+    t.helpText = s.helpText;
+    t.widgetOptions = s.widgetOptions;
+  };
+
+  MaterialSearchSelectField.prototype.init = function () {
+    const t = this;
+    t.fieldEl = document.createDocumentFragment();
+    t.fieldOuterWrapper = createEl(t.fieldEl, 'div', {class: t.fieldWrapperClass});
+    t.fieldInnerWrapper = createEl(t.fieldOuterWrapper, 'div', {class: 'field-inner-wrapper'});
+    createEl(t.fieldInnerWrapper, 'label', {
+      class: 'field-label',
+      innerHTML: t.label,
+      for: t.id,
+    });
+    const fieldInputWrapper = createEl(t.fieldOuterWrapper, 'div', {class: 'field-input-wrapper'});
+    t.input = createEl(fieldInputWrapper, 'input', {type: 'text', name: t.name, id: t.id, class: t.class});
+    t.input.addEventListener('focus', (e) => {
+      t.fieldOuterWrapper.classList.add('focused');
+    });
+    t.input.addEventListener('focusout', (e) => {
+      if (!!t.input.value) {t.fieldOuterWrapper.classList.add('filled');}
+      t.fieldOuterWrapper.classList.remove('focused');
+    });
+    t.input.onchange = () => {
+      if (!t.input.value) {
+        t.fieldOuterWrapper.classList.remove('filled');
+      } else {
+        t.fieldOuterWrapper.classList.add('filled');
+      }
+    };
+
+    const fieldset = createEl(fieldInputWrapper, 'fieldset', {class: 'form-fieldset', 'aria-hidden': true});
+    createEl(fieldset, 'legend', {class: 'fieldset-legend', innerHTML: `<span>${t.label}</span>`});
+    if (!!t.initial) t.input.value = t.initial;
+    if (!!t.helpText) {
+      createEl(t.fieldWrapper, 'small', {innerHTML: t.helpText});
+    }
+
+    t.widget = new app.SearchSelect(t.input, t.widgetOptions);
+  };
+
+  MaterialSearchSelectField.prototype.renderValid = function () {
+    const t = this;
+    classList(t.input).remove('is-invalid').add('is-valid');
+    if (t.error) t.error.remove();
+  };
+
+  MaterialSearchSelectField.prototype.renderInvalid = function (error) {
+    const t = this;
+    classList(t.input).remove('is-valid').add('is-invalid');
+    if (t.error) t.error.remove();
+    t.error = createEl(t.fieldWrapper, 'div', {class: 'invalid-feedback', innerHTML: error});
+  };
+
+  MaterialSearchSelectField.prototype.removeError = function () {
+    const t = this;
+    classList(t.input).remove('is-valid').remove('is-invalid');
+    if (t.error) t.error.remove();
+  };
+
+  MaterialSearchSelectField.prototype.appendFormData = function (formData) {
+    formData.append(this.name, this.input.value);
+  };
+
+  MaterialSearchSelectField.prototype.setValue = function (value) {
+    const t = this;
+    t.input.value = value;
+    t.input.onchange();
+  };
+
+  /* Material Form */
+  function MaterialForm (container, options) {
+    const t = this;
+    t.container = container;
+    t.config(options);
+    t.init();
+  }
+
+  MaterialForm.prototype.config = function (s) {
+    const t = this;
+    t.FORM_DATA_KEY = 'name';
+    t.FORM_DATA_VALUE = 'value';
+    t.baseUrl = s.baseUrl || getBaseUrl();
+    t.id = Math.floor(Math.random() * 1000000000).toString();
+    t.maxImageSize = s.maxImageSize || 5242880; // 5MB
+    t.formClass = s.formClass || 'material-form';
+    t.fieldData = s.fieldData;
+    t.buttons = s.buttons;
+    t.buttonNames = s.buttonNames;
+    t.resetOnSubmit = typeof(s.resetOnSubmit) === 'boolean' ? s.resetOnSubmit : true;
+    t.renderOnError = typeof(s.renderOnError) === 'boolean' ? s.renderOnError : false;
+    t.animateResult = typeof(s.animateResult) === 'boolean' ? s.animateResult : true;
+    t.cb = typeof(s.cb) === 'function' ? s.cb : ()=>{};
+    t.onNoChange = typeof(s.onNoChange) === 'function' ? s.onNoChange : ()=>{};
+    t.noChangeMsg = 'No change has been made';
+    t.initial = t.getFormData();
+    t.showImagePreview = s.showImagePreview || false;
+    t.onSubmit = s.onSubmit;
+  };
+
+  MaterialForm.prototype.init = function () {
+    const t = this;
+    t.fields = [];
+    const docFrag = document.createDocumentFragment();
+    t.form = createEl(docFrag, 'form', {
+      id: t.id,
+      class: t.formClass,
+      method: 'post',
+      autocomplete: 'off',
+      novalidate: true
+    });
+    for (let i = 0; i < t.fieldData.length; i++) {
+      let field;
+      if (t.fieldData[i]['type'] === 'hidden') {
+        field = new HiddenField({name: t.fieldData[i]['name'], initial: t.fieldData[i]['initial']});
+      } else if (t.fieldData[i]['type'] === 'search-select') {
+        field = new MaterialSearchSelectField({
+          label: t.fieldData[i]['label'],
+          name: t.fieldData[i]['name'],
+          id: `id_${t.fieldData[i]['name']}`,
+          class: 'field-input',
+          initial: t.fieldData[i]['initial'],
+          helpText: t.fieldData[i]['helpText'],
+          fieldWrapperClass: t.fieldWrapperClass,
+          widgetOptions: t.fieldData[i]['widgetOptions'],
+        });
+      } else {
+        field = new MaterialTextInputField({
+          label: t.fieldData[i]['label'],
+          name: t.fieldData[i]['name'],
+          id: `id_${t.fieldData[i]['name']}`,
+          initial: t.fieldData[i]['initial'],
+          helpText: t.fieldData[i]['helpText'],
+          fieldWrapperClass: t.fieldWrapperClass,
+          widgetType: t.fieldData[i]['widgetType'],
+          widgetOptions: t.fieldData[i]['widgetOptions'],
+        });
+      }
+      t.fields.push(field);
+      t.form.appendChild(field.fieldEl);
+    }
+    // Buttons
+    const btnGroup = createEl(t.form, 'div', {class: 'form-btn-group'});
+    if (t.buttons) {
+      for (let i = 0; i < t.buttons.length; i++) {
+        const btnName = typeof t.buttonNames === 'object' && i < t.buttonNames.length ? t.buttonNames[i] : null;
+        if (t.buttons[i] === 'submit') {
+          t.submitBtn = createEl(btnGroup, 'button', {
+            class: 'form-btn form-btn-filled me-3',
+            type: 'submit',
+            innerHTML: btnName || 'Submit'
+          });
+          if (typeof t.onSubmit === 'function') t.submitBtn.onclick = (e) => {t.onSubmit(e);};
+        } else if (t.buttons[i] === 'reset') {
+          t.resetBtn = createEl(btnGroup, 'button', {
+            class: 'form-btn form-btn-outlined me-3',
+            type: 'button',
+            innerHTML: btnName || 'Reset'
+          });
+          t.resetBtn.onclick = () => {t.reset();};
+        }
+      }
+    }
+    t.container.appendChild(docFrag);
+  };
+
+  MaterialForm.prototype.ajaxSubmit = function () {
+    const t = this;
+    const data = t.serialize();
+    console.log(data);
+    API.XHR(t.baseUrl, {
+      data: data,
+      cb: (json) => {
+        //console.log(json);
+        if (json.success) {
+          t.removeErrors();
+          if (t.resetOnSubmit) t.reset();
+          if (t.animateResult) createCustomMessage(json.success, false);
+          if (typeof t.cb === 'function') t.cb(json);
+        } else if (json.errors) {
+          if (t.renderOnError) t.renderForm(json.errors);
+        }
+      },
+      errorCb: (error) => {
+        if (t.animateResult) createCustomMessage('Network Error!', true, t.customMessageTimeout);
+      }
+    });
+  };
+
+  MaterialForm.prototype.renderForm = function (errors) {
+    const t = this;
+    if ('__all__' in errors) {
+      // fieldWrapperClass can be class list
+      const fieldClassSelector = t.fieldWrapperClass.split(' ').map(e => '.' + e).join('');
+      const firstField = t.form.querySelector(fieldClassSelector);
+      if (firstField) {
+        const docFrag = document.createDocumentFragment();
+        t.nonFieldError = createEl(docFrag, 'div', {
+          class: 'alert non-field-error',
+          innerHTML: errors['__all__'][0]['message']
+        });
+        t.form.insertBefore(docFrag, firstField);
+      }
+    } else {
+      if (t.nonFieldError) {
+        t.nonFieldError.remove();
+      }
+    }
+    // Field errors
+    for (let i = 0; i < t.fields.length; i++) {
+      if (t.fields[i].type !== 'hidden') {
+        if (t.fields[i].name in errors) {
+          t.fields[i].renderInvalid(errors[t.fields[i].name][0]['message']);
+        } else {
+          t.fields[i].renderValid();
+        }
+      }
+    }
+  };
+
+  MaterialForm.prototype.removeErrors = function () {
+    const t = this;
+    for (let i = 0; i < t.fields.length; i++) {
+      if (t.fields[i].type !== 'hidden') {
+        t.fields[i].removeError();
+      }
+    }
+  }
+
+  MaterialForm.prototype.reset = function (resetHiddenFields) {
+    const t = this;
+    t.form.reset();
+    if (resetHiddenFields === true) {
+      for (let i = 0; i < t.fields.length; i++) {
+        if (t.fields[i].type === 'hidden') {
+          t.fields[i].setValue('');
+        }
+      }
+    }
+  };
+
+  MaterialForm.prototype.getFormData = function () {
+    const t = this;
+    const data = new FormData(t.form);
+    const formData = [];
+    for (const [key, value] of data) {
+      formData.push({[t.FORM_DATA_KEY]: key, [t.FORM_DATA_VALUE]: value});
+    }
+    return formData;
+  };
+
+  MaterialForm.prototype.hasChanged = function () {
+    const t = this;
+    t.formData = t.getFormData();
+    t.changed = false;
+    if (t.formData.length === t.initial.length) {
+      for (let i = 0; i < t.formData.length; i++) {
+        if (t.formData[i][t.FORM_DATA_KEY] !== t.initial[i][t.FORM_DATA_KEY] ||
+          t.formData[i][t.FORM_DATA_VALUE] !== t.initial[i][t.FORM_DATA_VALUE]) {
+          t.changed = true;
+          break;
+        }
+      }
+    } else {
+      t.changed = true;
+    }
+    return t.changed;
+  };
+
+  MaterialForm.prototype.serialize = function () {
+    const t = this;
+    //return new FormData(t.form);
+    // When serialize the form, we need to check if upload field,
+    // especially for image, has changed or not.
+    // Allow ImageField to be null for form validation on server.
+    // If UploadField has no change, do not serialize this field.
+    const formData = new FormData();
+    for (let i = 0; i < t.fields.length; i++) {
+      t.fields[i].appendFormData(formData);
+    }
+    return formData;
+  };
+
+  MaterialForm.prototype.initialize = function (initials) {
+    const t = this;
+    for (let i = 0; i < t.fields.length; i++) {
+      if (initials.hasOwnProperty(t.fields[i].name) && hasValue(initials[t.fields[i].name])) {
+        t.fields[i].setValue(initials[t.fields[i].name]);
+      }
+    }
+  };
+
+
+  /*===== Search Bar ======*/
+  function SearchBar (container, options) {
+    const t = this;
+    t.container = container;
+    t.config(options);
+    t.init();
+  }
+
+  SearchBar.prototype.config = function (s) {
+    const t = this;
+    t.instantSearch = s.instantSearch || false;
+  };
+
+  SearchBar.prototype.init = function () {
+    const t = this;
+    const docFrag = document.createDocumentFragment();
+
+  };
+
+
+
+
+  const quadOut = function (t) {
+    return 2 * t - t * t;
+  };
+
+
+
+  class ConfirmSubmit {
+    constructor(options) {
+      const t = this;
+      t.config(options);
+      t.init();
+    }
+
+    config (s) {
+      const t = this;
+      t.id = s.id || `confirm-submit-${randomId()}`;
+      t.title = s.title || 'Confirm your action';
+      t.dialog = s.dialog || '';
+      t.recedeBtnClass = s.recedeBtnClass || 'btn btn-secondary';
+      t.proceedBtnClass = s.proceedBtnClass || 'btn btn-danger';
+      t.recedeBtnText = s.recedeBtnText || 'No';
+      t.proceedBtnText = s.proceedBtnText || 'Delete';
+      t.recedeCb = s.recedeCb;
+      t.proceedCb = s.proceedCb;
+    }
+
+    init () {
+      const t = this;
+      const docFrag = document.createDocumentFragment();
+      t.modal = createEl(docFrag, 'div', {
+        class: 'confirm-submit modal fade show',
+        id: 'modal-' + t.id,
+        tabindex: '-1',
+        'aria-labelledby': 'modal-label-' + t.id,
+        'aria-modal': 'true',
+        role: 'dialog',
+        style: 'display: block; background-color: rgba(0,0,0,0.4)',
+      });
+      const mDialog = createEl(t.modal, 'div', {class: 'modal-dialog'});
+      const mContent = createEl(mDialog, 'div', {class: 'modal-content'});
+      const mHeader = createEl(mContent, 'div', {class: 'modal-header bg-warning fw-bolder'});
+      createEl(mHeader, 'div', {class: 'modal-title', innerHTML: t.title});
+      const mBody = createEl(mContent, 'div', {class: 'modal-body text-danger'});
+      createEl(mBody, 'p', {innerHTML: t.dialog});
+      const mFooter = createEl(mContent, 'div', {class: 'modal-footer'});
+      const recedeBtn = createEl(mFooter, 'button', {
+        type: 'button',
+        class: t.recedeBtnClass,
+        innerHTML: t.recedeBtnText,
+        'data-bs-dismiss': 'modal'
+      });
+      const proceedBtn = createEl(mFooter, 'button', {
+        type: 'button',
+        class: t.proceedBtnClass,
+        innerHTML: t.proceedBtnText
+      });
+
+      if (typeof t.recedeCb === 'function') {
+        recedeBtn.addEventListener('click', () => {t.recedeCb(t);});
+      }
+      if (typeof t.proceedCb === 'function') {
+        proceedBtn.addEventListener('click', () => {t.proceedCb(t);});
+      }
+      document.body.appendChild(docFrag);
+    }
+
+    destroy () {
+      this.modal.remove();
+    }
+  }
+
+  class FAB {
+    constructor(options) {
+      const t = this;
+      t.config(options);
+      t.init();
+    }
+
+    config (s) {
+      const t = this;
+      t.icon = s.icon;
+      t.color = s.color;
+      t.title = s.title;
+      t.cb = s.cb;
+      t.menu = s.menu;
+      t.horizontal = s.horizontal || false;
+      t.xPos = s.xPos;
+      t.yPos = s.yPos;
+    }
+
+    init () {
+      const t = this;
+      const docFrag = document.createDocumentFragment();
+      t.container = app.createEl(docFrag, 'div', {
+        class: 'fixed-action-btn spin-close' + (t.horizontal ? ' horizontal' : ''),
+      });
+      if (t.xPos) {t.container.style.right = t.xPos;}
+      if (t.yPos) {t.container.style.bottom = t.yPos;}
+      t.fabBtn = app.createEl(t.container, 'a', {
+        class: 'btn-floating btn-large ' + (t.color ? t.color : 'blue'),
+      });
+      if (t.title) {
+        t.fabBtn.setAttribute('title', t.title);
+        t.fabBtn.setAttribute('data-bs-toggle', 'tooltip');
+        t.fabBtn.setAttribute('data-bs-placement', 'top');
+      }
+      app.createEl(t.fabBtn, 'i', {class: 'material-symbols-outlined', innerHTML: t.icon});
+      // FAB menu
+      document.body.append(docFrag);
+      if (typeof t.cb === 'function') {
+        t.fabBtn.addEventListener('click', () => t.cb());
+      }
+    }
+  }
+
+  // https://codepen.io/woranov/pen/NRqLWK
+  class Tabs {
+    constructor(container, options) {
+      const t = this;
+      t.container = container;
+      t.config(options);
+      t.init();
+    }
+
+    config(s) {
+      const t = this;
+      t.tabNames = s.tabNames;
+      t.tabIcons = s.tabIcons;
+      t.tabContentSelector = s.tabContentSelector || 'section.custom-tab';
+      t.id = s.id || `${randomId()}`;
+      t.name = s.name || `tab-control-${t.id}`;
+      t.initialTab = s.initialTab || 0;
+    }
+
+    init() {
+      const t = this;
+      const docFrag = document.createDocumentFragment();
+      t.inputs = [];
+      t.tabNames.forEach((tab, tabIdx) => {
+        const input = createEl(docFrag, 'input', {
+          type: 'radio',
+          id: `custom-tab-${t.id}-${tabIdx}`,
+          name: t.name,
+          class: 'custom-tab-input',
+          value: `${tabIdx}`
+        });
+        if (tabIdx === t.initialTab) {input.checked = true;}
+        t.inputs.push(input);
+      });
+      t.tabContainer = createEl(docFrag, 'ul', {class: 'tabs-container'});
+      t.labels = [];
+      t.tabNames.forEach((tabName, tabIdx) => {
+        const li = createEl(t.tabContainer, 'li', {title: tabName});
+        const label = createEl(li, 'label', {
+          for: `custom-tab-${t.id}-${tabIdx}`,
+          role: 'button'
+        });
+        t.labels.push(label);
+        if (t.tabIcons) {
+          createEl(label, 'span', {
+            class: 'material-symbols-outlined',
+            innerHTML: t.tabIcons[tabIdx],
+          });
+          createEl(label, 'br');
+        }
+        createEl(label, 'span', {innerHTML: tabName});
+      });
+      t.slider = createEl(docFrag, 'div', {
+        class: 'custom-tab-slider',
+        style: `width:${(100/t.tabNames.length).toFixed(2)}%`,
+      });
+      t.indicator = createEl(t.slider, 'div', {class: 'custom-tab-slider-indicator'});
+      //t.content.parentNode.insertBefore(docFrag, t.content);
+      t.content = createEl(docFrag, 'div', {class: 'custom-tabs-content mt-3'});
+      t.tabs = [];
+      t.tabNames.forEach(tn => {
+        const tab = createEl(t.content, 'section', {class: 'custom-tab'});
+        t.tabs.push(tab);
+      });
+
+      t.setTab();
+      t.inputs.forEach(input => {
+        input.addEventListener('change', () => {t.setTab();});
+      });
+
+      t.container.appendChild(docFrag);
+    }
+
+    setTab() {
+      const t = this;
+      let selectedValue;
+      for (let i = 0; i < t.inputs.length; i++) {
+        if (t.inputs[i].checked === true) {
+          selectedValue = parseInt(t.inputs[i].value);
+          break;
+        }
+      }
+      t.labels.forEach((label, idx) => {
+        label.style = idx === selectedValue ? "cursor: default; color: #428BFF;" : "";
+        t.tabs[idx].style = idx === selectedValue ? "display:block;" : "";
+      });
+      t.slider.style = `width:${(100/t.tabNames.length).toFixed(2)}%;transform:translateX(${selectedValue*100}%);`;
+    }
+  }
+
+  class Menu {
+    constructor(container, options) {
+      const t = this;
+      t.container = container;
+      t.config(options);
+      t.init();
+    }
+
+    config(s) {
+      const t = this;
+      t.buttons = s.buttons;
+      t.icons = s.icons;
+      t.values = s.values;
+      t.name = s.name || `custom-men-${randomId()}`;
+    }
+
+    init() {
+      const t = this;
+      const docFrag = document.createDocumentFragment();
+      const wrapper = createEl(docFrag, 'div', {class: 'custom-menu-wrapper', role: 'group',});
+      const btnDropdown = createEl(wrapper, 'button', {class: 'btn d-md-none pt-2 pb-0 px-0', type: 'button'});
+      createEl(btnDropdown, 'span', {class: 'material-symbols-outlined', innerHTML: 'menu'});
+      t.menu = createEl(wrapper, 'div', {class: 'custom-menu custom-menu-right'});
+      t.items = [];
+      t.buttons.forEach((e, idx) => {
+        const item = createEl(t.menu, 'div', {class: 'custom-menu-item', role: 'button'});
+        if (e.title) {
+          item.setAttribute('data-bs-toggle', 'tooltip');
+          item.setAttribute('data-bs-placement', 'bottom');
+          item.setAttribute('title', e.title)
+        }
+        if (e.icon) {
+          createEl(item, 'span', {class: 'material-symbols-outlined', innerHTML: e.icon});
+        }
+        if (e.text) {
+          createEl(item, 'div', {class: 'custom-menu-item-label', innerHTML: e.text});
+        }
+        if (e.color) {item.style = `color:${e.color}`;}
+        if (typeof e.evtHandler === 'function') {item.addEventListener('click', e.evtHandler);}
+        t.items.push(item);
+      });
+      btnDropdown.addEventListener('click', (e) => {t.menu.classList.toggle('show');});
+      t.container.appendChild(docFrag);
+    }
+  }
+
+  /* Table */
+  class Table {
+    constructor(container, options) {
+      const t = this;
+      t.container = container;
+      t.config(options);
+      t.init();
+    }
+
+    config (s) {
+      const t = this;
+      t.headers = s.headers;
+      t.rows = s.rows;
+      t.colKeys = s.colKeys;
+      t.colFormatters = s.colFormatters || [];
+      t.colEvtHandlers = s.colEvtHandlers || [];
+      t.colWidths = s.colWidths || [];
+      t.rowIdKey = s.rowIdKey;
+      t.tableClass = s.tableClass || 'table table-striped font-sm';
+      t.useRawColData = s.useRawColData || false;
+    }
+
+    getColFunc = function (colFuncs, colIdx) {
+      return (colIdx < colFuncs.length) && (typeof colFuncs[colIdx] === 'function') ? colFuncs[colIdx] : null;
+    }
+
+    init () {
+      const t = this;
+      const docFrag = document.createDocumentFragment();
+      const container = createEl(docFrag, 'div', {class: 'table-container'});
+      t.tableWrapper = createEl(container, 'div', {
+        class: 'data-table-wrapper',
+        style: 'overflow: auto; position: relative;'
+      });
+      t.table = createEl(t.tableWrapper, 'table', {class: t.tableClass});
+      if (!!t.headers) {
+        const thead = createEl(t.table, 'thead');
+        const theadTr = createEl(thead, 'tr', {class: 'text-uppercase'});
+        t.headers.forEach((el, colIdx) => {
+          const th = createEl(theadTr, 'th', {'innerHTML': el});
+          if (t.colWidths.length > colIdx) {th.style.width = t.colWidths[colIdx];}
+        });
+      }
+
+      t.tbody = createEl(t.table, 'tbody');
+      t.appendRows(t.rows);
+
+      t.container.append(docFrag);
+    }
+
+    getRowspan (rowData) {
+      const t = this;
+      let rowspan = 1;
+      if (!t.useRawColData) {
+        t.colKeys.forEach(k => {
+          if (rowData[k] && Array.isArray(rowData[k])) {
+            rowspan = Math.max(rowspan, rowData[k].length);
+          }
+        });
+      }
+      return rowspan;
+    }
+
+    createTd (row, col, colIdx, tr, rowspan) {
+      const t = this;
+      const fmt = t.getColFunc(t.colFormatters, colIdx);
+      const disp = !!fmt ? fmt(row, col) : col;
+      const td = createEl(tr, 'td', {'data-label': t.headers[colIdx]});
+      if (rowspan > 1) {td.setAttribute('rowspan', rowspan);}
+      const dispEl = createEl(td, 'div', {class: 'td-disp'});
+      if (disp instanceof DocumentFragment || disp instanceof HTMLElement) {
+        dispEl.appendChild(disp);
+        const evtHandler = t.getColFunc(t.colEvtHandlers, colIdx);
+        if (!!evtHandler) {
+          disp.addEventListener('click', evtHandler);
+        }
+      } else if (typeof disp === 'string') {
+        dispEl.innerHTML = disp;
+      } else if (!!disp && (typeof disp.toString === 'function')) {
+        dispEl.innerHTML = disp.toString();
+      }
+    }
+
+    appendRows (rows, prepend = false) {
+      const t = this;
+      const docFrag = document.createDocumentFragment();
+      rows.forEach((row, rowIdx) => {
+        const tr = app.createEl(docFrag, 'tr');
+        if (!!t.rowIdKey) {tr.setAttribute('data-row-id', row[t.rowIdKey]);}
+        const rowspan = t.getRowspan(row);
+        t.colKeys.forEach((colKey, colIdx) => {
+          if (Array.isArray(row[colKey])) {
+            if (row[colKey].length > 0 && !t.useRawColData) {
+              row[colKey].forEach(col => {t.createTd(row, col, colIdx, tr, 1)});
+            } else if (t.useRawColData) {
+              t.createTd(row, row[colKey], colIdx, tr, rowspan);
+            } else {
+              t.createTd(row, null, colIdx, tr, rowspan);
+            }
+          } else {
+            t.createTd(row, row[colKey], colIdx, tr, rowspan);
+          }
+        });
+      });
+      if (prepend === true) {
+        t.tbody.insertBefore(docFrag, t.tbody.firstChild);
+      } else {
+        t.tbody.appendChild(docFrag);
+      }
+    }
+
+    updateRows(rows) {
+      const t = this;
+      removeAllChildNodes(t.tbody);
+      t.appendRows(rows);
+    }
+  }
+
+  /* MultiInput */
+  class MultiInput {
+    constructor(container, props) {
+      const t = this;
+      t.container = container;
+      t.config(props);
+      t.init();
+    }
+
+    config(s) {
+      const t = this;
+      t.keycode = { comma: 44, enter: 13, backspace: 8 };
+      t.removeClass = 'multi-input-remove';
+      t.dataValueAttr = 'data-value';
+      t.placeholder = s.placeholder || 'add more people ...';
+      t.triggerKeyCodes = s.triggerKeyCodes || [t.keycode.enter, t.keycode.comma];
+      t.pasteSplitPattern = s.pasteSplitPattern || /(?:,| )+/;
+
+      t.selectedData = s.selectedData ? JSON.parse(JSON.stringify(s.selectedData)) : [];
+      t.unselectedData = s.unselectedData || [];
+
+      // For email, use ((email) => {return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)})
+      t.chipValidator = s.chipValidator;
+      t.includeInvalid = s.includeInvalid || false;
+    }
+
+    init() {
+      const t = this;
+      const docFrag = document.createDocumentFragment();
+      t.wrapper = createEl(docFrag, 'div', {class: 'multi-input'});
+      t.input = createEl(t.wrapper, 'input', {
+        type: 'text',
+        class: 'multi-input-text',
+        role: 'multi-input',
+        placeholder: t.placeholder
+      });
+      t.dropdownContainer = createEl(docFrag, 'div', {class: 'select-dropdown-container'});
+      t.selectedData.forEach(data => {t.addChip(data.text, true);});
+      t.setEventListeners();
+      t.container.appendChild(docFrag);
+    }
+
+    filterDropdownData(text) {
+      const t = this;
+      return t.unselectedData.filter(data => data.text.includes(text));
+    }
+
+    getChipData(text) {
+      const t = this;
+      for (let i = 0; i < t.selectedData.length; i++) {
+        if (t.selectedData[i].text === text) {return t.selectedData[i];}
+      }
+      for (let i = 0; i < t.unselectedData.length; i++) {
+        if (t.unselectedData[i].text === text) {return t.unselectedData[i];}
+      }
+      return {text: text};
+    }
+
+    addChip(text, isInitial) {
+      const t = this;
+      isInitial = isInitial || false;
+      const trimmedText = text && text.trim();
+      if (!trimmedText) return;
+
+      const isValid = isInitial || t.validateChip(trimmedText);
+      const data = t.getChipData(text);
+      const docFrag = document.createDocumentFragment();
+      const chip = createEl(docFrag, 'span', {role: 'input-chip', class: 'input-chip'});
+      if (data.value) {chip.setAttribute(t.dataValueAttr, data.value);}
+      if (!isValid) {chip.classList.add('invalid');}
+      createEl(chip, 'span', {class: 'content', innerHTML: trimmedText});
+      createEl(chip, 'a', {role: 'button', class: t.removeClass, innerHTML: '×'});
+      t.wrapper.insertBefore(docFrag, t.input);
+
+      if (isValid) {
+        const index = t.unselectedData.map(x => x.text).indexOf(trimmedText);
+        if (index >= 0) {
+          const arr0 = t.unselectedData.splice(index, 1);
+          t.selectedData.push(arr0[0]);
+        }
+      }
+
+      // clear input value
+      t.input.value = '';
+      if (t.searchInput) {t.searchInput.value = '';}
+    }
+
+    validateChip(text) {
+      const t = this;
+      if (typeof t.chipValidator === 'function') {
+        return t.chipValidator(text, t.unselectedData);
+      } else {
+        return t.unselectedData.map(c => c.text).includes(text);
+      }
+    }
+
+    getChips() {
+      const t = this;
+      return Array.prototype.slice
+        .call(t.container.querySelectorAll('.multi-input .input-chip'));
+    }
+
+    removeChip(chip) {
+      const t = this;
+      const content = chip.querySelector('span.content');
+      if (content) {
+        if (!chip.classList.contains('invalid')) {
+          const text = content.innerHTML,
+            data = t.getChipData(text);
+          t.unselectedData.push(data);
+          const index = t.selectedData.map(x => x.text).indexOf(text);
+          if (index >= 0) {t.selectedData.splice(index, 1);}
+        }
+        chip.remove();
+      }
+    }
+
+    createOption(choice) {
+      const t = this;
+      const option = createEl(t.optionList, 'div', {
+        class: 'select-option', role: 'option', style: 'height: 38px;'
+      });
+      if (choice.value) {option.setAttribute(t.dataValueAttr, choice.value);}
+      createEl(option, 'div', {class: 'select-option-text', innerHTML: choice.text});
+    }
+
+    showDropdown() {
+      const t = this;
+      removeAllChildNodes(t.dropdownContainer);
+      const docFrag = document.createDocumentFragment();
+      const dropdown = createEl(docFrag, 'div', {class: 'select-dropdown', tabindex: '0'});
+      const inputGroup = createEl(dropdown, 'div', {class: 'input-group'});
+      t.searchInput = createEl(inputGroup, 'input', {
+        type: 'text',
+        class: 'form-control select-filter-input',
+        placeholder: 'Search...',
+        role: 'searchbox'
+      });
+      const wrapper = createEl(dropdown, 'div', {class: 'select-options-wrapper', style: 'max-height:400px;'});
+      t.optionList = createEl(wrapper, 'div', {class: 'select-options-list'});
+      t.unselectedData.forEach(c => {t.createOption(c);});
+      t.dropdownContainer.classList.add('show');
+      t.dropdownContainer.appendChild(docFrag);
+    }
+
+    hideDropdown() {
+      this.dropdownContainer.classList.remove('show');
+    }
+
+    updateDropdownOptions(options) {
+      const t = this;
+      if (t.optionList) {
+        removeAllChildNodes(t.optionList);
+        options.forEach(option => {t.createOption(option);});
+      }
+    }
+
+    setEventListeners() {
+      const t = this;
+
+      // Click Events
+      document.onclick = (e) => {
+        if (e.target === t.input) {
+          t.showDropdown();
+        } else if (e.target.classList.contains(t.removeClass)) {
+          t.removeChip(e.target.parentNode);
+          // Whenever a chip is removed, hide dropdown
+          t.hideDropdown();
+        } else if (t.dropdownContainer.contains(e.target)) {
+          if (e.target.classList.contains('select-option')||e.target.classList.contains('select-option-text')) {
+            // An option is selected, add chip
+            const selectOption = e.target.classList.contains('select-option') ? e.target : e.target.parentNode;
+            const text = selectOption.querySelector('.select-option-text').innerHTML;
+            t.addChip(text);
+            // Remove option from dropdown
+            selectOption.remove();
+          } else if (e.target.classList.contains('select-filter-input')) {
+            e.target.focus();
+          }
+        } else {
+          t.addChip(t.input.value);
+          t.hideDropdown();
+        }
+      };
+
+      t.wrapper.addEventListener('input', (e) => {
+        if (e.target.classList.contains('multi-input-text')) {
+          const data = t.filterDropdownData(e.target.value);
+          t.updateDropdownOptions(data);
+        }
+      });
+
+      t.dropdownContainer.addEventListener('input', (e) => {
+        if (e.target.classList.contains('select-filter-input')) {
+          const data = t.filterDropdownData(e.target.value);
+          t.updateDropdownOptions(data);
+        }
+      });
+
+      t.container.addEventListener('paste', (e) => {
+        if (!e.target.matches('input')) return;
+        e.preventDefault();
+        const chunks = e.clipboardData.getData('Text').split(t.pasteSplitPattern);
+        if (chunks.length > 1) {
+          t.hideDropdown();
+          chunks.forEach((chunk) => {t.addChip(chunk);});
+          return;
+        }
+        const chunk = chunks[0]
+        if (t.validateChip(chunk)) {
+          t.hideDropdown();
+          t.addChip(chunk);
+          return;
+        }
+        e.target.value += chunk;
+        const data = t.filterDropdownData(e.target.value);
+        t.updateDropdownOptions(data);
+      });
+
+      t.container.addEventListener('keypress', (e) => {
+        // When enter or comma pressed, check input value to add chip
+        if (t.triggerKeyCodes.indexOf(e.keyCode) < 0) return;
+        e.preventDefault();
+        //t.hideDropdown();
+        t.addChip(e.target.value);
+        t.updateDropdownOptions(t.unselectedData);
+      });
+
+      t.container.addEventListener('keydown', (e) => {
+        if (e.keyCode === t.keycode.backspace && !e.target.value) {
+          const chips = t.getChips();
+          if (!chips.length) return;
+          const lastChip = chips[chips.length - 1];
+          t.removeChip(lastChip);
+          t.hideDropdown();
+        }
+      });
+    }
+
+    getTexts() {
+      const t = this;
+      const chips = t.getChips();
+      if (t.includeInvalid) {return chips.map((chip) => {return chip.firstChild.textContent;});}
+      return chips.filter((c) => {return !c.classList.contains('invalid');}).map((c) => {return c.firstChild.textContent;});
+    }
+
+    getValues() {
+      const t = this;
+      const chips = t.getChips();
+      return chips.filter((c) => {return c.hasAttribute(t.dataValueAttr);}).map((c) => {return c.getAttribute(t.dataValueAttr);});
+    }
+
+    getOptions() {
+      const t = this;
+      const chips = t.getChips();
+      return chips.filter((c) => {return c.hasAttribute(t.dataValueAttr);}).map((c) => {return c.getAttribute(t.dataValueAttr);});
+    }
+  }
+
+  class MonthYearSelect {
+    constructor(input, options) {
+      const t = this;
+      t.originalInput = input;
+      t.config(options);
+      t.init();
+    }
+
+    config(s) {
+      const t = this;
+      t.inputGroupClass = 'my-select-input-group ' + (s.inputGroupClass || '');
+      t.allowedMonths = s.allowedMonths || ['1', '6', '9'];
+      const curYear = new Date().getFullYear() - 2000;
+      t.allowedYears = s.allowedYears || Array.from(Array(41), (x, i) => app.padStart2(curYear + i-19));
+      t.initial = t.originalInput.value || s.initial;
+      t.initialMonth = null;
+      t.initialYear = null;
+      if (t.initial) {
+        if (/^\d{1,2}\/\d{2}$/.test(t.initial) || /^\d{1,2}\/\d{4}$/.test(t.initial)) {
+          const ss = t.initial.split('/'),
+            ss1 = /^\d{1,2}\/\d{2}$/.test(t.initial) ? ss[1] : (parseInt(ss[1]) - 2000).toString();
+          t.initialMonth = t.allowedMonths.includes(ss[0]) ? ss[0] : null;
+          t.initialYear = t.allowedYears.includes(ss1) ? ss1 : null;
+        } else if (/^(spring|summer|fall)\s+\d{4}/.test(t.initial.toLowerCase())) {
+          const ss = t.initial.toLowerCase().replace('\s+', ' ').split(' ');
+          t.initialMonth = ss[0] === 'spring' ? '1' : (ss[0] === 'summer' ? '6' : '9');
+          t.initialYear = `${parseInt(ss[1]) - 2000}`;
+        }
+      }
+      if (t.initialYear && t.initialMonth) {t.originalInput.value = `${t.initialMonth}/${t.initialYear}`;}
+      t.readOnly = s.readOnly || false;
+      t.initialYearScroll = s.initialYearScroll;
+    }
+
+    init() {
+      const t = this;
+      t.originalInput.value = !t.initialMonth || !t.initialYear ? '' : `${t.initialMonth}/${t.initialYear}`;
+
+      const docFrag = document.createDocumentFragment();
+      t.inputGroup = app.createEl(docFrag, 'div', {class: 'my-select-input-group'});
+      t.monthSelect = new Select({
+        container: t.inputGroup,
+        inputClass: 'my-select-input',
+        inputName: 'month_select',
+        options: t.allowedMonths,
+        initial: t.initialMonth,
+        selectWidth: '100%',
+        onchange: () => {t.onchange();},
+        readOnly: t.readOnly,
+      })
+      app.createEl(t.inputGroup, 'span', {innerHTML: ' /'});
+      t.yearSelect = new Select({
+        container: t.inputGroup,
+        inputClass: 'my-select-input',
+        inputName: 'year_select',
+        options: t.allowedYears,
+        initial: t.initialYear,
+        selectWidth: '100%',
+        onchange: () => {t.onchange();},
+        readOnly: t.readOnly,
+        initialScroll: t.initialYearScroll,
+      })
+      t.originalInput.classList.add('d-none');
+      t.originalInput.parentNode.appendChild(docFrag);
+    }
+
+    onchange() {
+      const t = this;
+      t.originalInput.value = `${t.monthSelect.value()}/${t.yearSelect.value()}`;
+      if (typeof t.originalInput.onchange === 'function') {
+        t.originalInput.onchange();
+      }
+    }
+
+    value() {
+      return this.originalInput.value;
+    }
+
+    setValue(value) {
+      const t = this;
+      if (/^\d{1,2}\/\d{2}$/.test(value) || /^\d{1,2}\/\d{4}$/.test(value)) {
+        t.originalInput.value = value;
+        const my = value.split('/');
+        t.monthSelect.setValue(my[0]);
+        t.yearSelect.setValue(my[1]);
+      } else {
+        t.originalInput.value = '';
+        t.monthSelect.setValue('');
+        t.yearSelect.setValue('');
+      }
+    }
+  }
+
+  class Paginator {
+    constructor(container, options) {
+      const t = this;
+      t.container = container;
+      t.config(options);
+      t.init();
+    }
+
+    config(s) {
+      const t = this;
+      t.nPage = s.nPage;
+      t.initialPage = s.initialPage || 1;
+      t.nNeighbor = s.nNeighbor || 1;
+    }
+
+    init() {
+      const t = this;
+      t.curPage = t.initialPage;
+      t.render();
+    }
+
+    render() {
+      const t = this;
+      t.pages = [];
+      if (t.pagination) {
+        t.pagination.remove();
+        t.pagination = null;
+      }
+      const docFrag = document.createDocumentFragment();
+      t.pagination = createEl(docFrag, 'ul', {class: 'pagination'});
+      t.prevBtn = createEl(t.pagination, 'li', {class: 'page-btn'});
+      createEl(t.prevBtn, 'span', {class: 'material-symbols-outlined', innerHTML: 'chevron_left'});
+      let prevPage = null;
+      for (let i = 0; i < t.nPage; i++) {
+        const iPage = i + 1,
+          active = iPage === t.curPage,
+          visible = t.isVisible(iPage);
+        const page = createEl(t.pagination, 'li', {
+          class: 'page-number' + (active ? ' active' : '') + (visible ? '' : ' d-none'),
+          innerHTML: iPage,
+        });
+        page.addEventListener('click', (e) => {
+          dispatchGlobalEvent('pagination', {'page': iPage});
+        });
+        t.pages.push(page);
+        if (!visible) {
+          if (prevPage && !prevPage.classList.contains('page-dots')) {
+            prevPage = createEl(t.pagination, 'li', {class: 'page-dots', innerHTML: '...'});
+          }
+        } else {
+          prevPage = page;
+        }
+      }
+      t.nextBtn = createEl(t.pagination, 'li', {class: 'page-btn'});
+      createEl(t.nextBtn, 'span', {class: 'material-symbols-outlined', innerHTML: 'chevron_right'});
+      t.container.appendChild(docFrag);
+    }
+
+    isVisible(iPage) {
+      const t = this;
+      if (iPage === 1) {
+        return true;
+      } else if (Math.abs(t.curPage - iPage) <= t.nNeighbor) {
+        return true;
+      } else if (iPage === t.nPage) {
+        return true;
+      } else if ((iPage === 2 && t.curPage - (t.nNeighbor + 1) === 2)||(iPage === t.nPage - 1 && t.curPage + (t.nNeighbor + 1) === t.nPage - 1)) {
+        return true;
+      }
+      return false;
+    }
+
+    update(curPage) {
+      const t = this;
+      t.curPage = curPage;
+      // remove all page-dots
+      t.container.querySelectorAll('.page-dots').forEach((el) => {el.remove();});
+      let prevPage = null;
+      for (let i = 0; i < t.pages.length; i++) {
+        const iPage = i + 1,
+          active = iPage === t.curPage,
+          visible = t.isVisible(iPage);
+        if (active) {
+          t.pages[i].classList.add('active');
+        } else {
+          t.pages[i].classList.remove('active');
+        }
+        if (visible) {
+          t.pages[i].classList.remove('d-none');
+        } else {
+          t.pages[i].classList.add('d-none');
+        }
+        if (!visible) {
+          if (prevPage && !prevPage.classList.contains('page-dots')) {
+            const dotsPage = document.createElement('li');
+            dotsPage.setAttribute('class', 'page-dots');
+            dotsPage.innerHTML = '...';
+            insertAfter(dotsPage, t.pages[i]);
+            prevPage = dotsPage;
+          }
+        } else {
+          prevPage = t.pages[i];
+        }
+      }
+    }
+  }
+
+  return {
+    valuesOf, arrayCompare, createEl, insertAfter, createCustomMessage, TimezoneSelect, SearchSelect,
+    fadeIn, fadeOut, extend, urlAddParams, urlAddOrReplaceParam, isIsoDate, isUsDate, toJsDate, dateCal,
+    dateDiff, DateTimePicker, getCookie, AjaxForm, DataTable, Modal, API, TabHash, dispatchGlobalEvent,
+    SmartForm, classList, arrayRange, capitalize, toIsoDate, toUsDate, getTimeZoneStandard,
+    awareizeIsoDate, toIsoTime, toUsTime, Form, getArrayElementByKey, getArrayElementIndexByKey,
+    isValidImageFile, compressImage, quadOut, getBaseUrl, updateArrayData, MaterialForm, isNullOrUndefined,
+    ConfirmSubmit, FAB, DateTimeField, FileField, Select, formatUTCOffset, Slider, randomId, Tabs,
+    Menu, Table, MultiInput, removeAllChildNodes, formDataAppendArr, isValidDate, ChecksField, SelectField,
+    padStart2, tryParseJson, isEmpty, MonthYearSelect, Paginator, TextField, isInteger
+  };
+
+}());

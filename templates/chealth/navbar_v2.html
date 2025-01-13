@@ -1,0 +1,111 @@
+{% load static %}
+
+<section class="header">
+  <header class="container-fluid">
+    <nav class="navbar navbar-expand-lg fixed-top navbar-light bg-light px-6">
+      <a class="navbar-brand " href="{% url 'home' %}">
+        <img src="{% static 'main/digital-health-logo.svg' %}" alt="Digital Health Logo" class="img-logo"> </a>
+      <button class="navbar-toggler navbar-light px-2" type="button" data-bs-toggle="collapse"
+              data-bs-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false"
+              aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse pl-lg-4 pb-lg-0 pb-4" id="navbarToggler">
+        <div class="header-menu-container">
+          <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+            <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown">
+              <a href="#" class="nav-link dropdown-toggle" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">Templates</a>
+              <ul class="sub-menu dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                <li class="dropdown-item menu-item menu-item-type-post_type menu-item-object-page">
+                  <a href="https://www.bootstrapdash.com/premium-admin-templates" class="nav-link">All Premium Templates</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-post_type menu-item-object-page">
+                  <a href="https://www.bootstrapdash.com/bootstrap-admin-template" class="nav-link">Bootstrap Templates</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-custom menu-item-object-custom">
+                  <a href="https://www.bootstrapdash.com/ui-kit/" class="nav-link">UI Kits</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-custom menu-item-object-custom">
+                  <a href="https://www.bootstrapdash.com/laravel-templates/" class="nav-link">Laravel Templates</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-custom menu-item-object-custom">
+                  <a href="/angular-admin-templates/" class="nav-link">Angular Admin Templates</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-custom menu-item-object-custom">
+                  <a href="/react-admin-templates/" class="nav-link">React Admin Templates</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-custom menu-item-object-custom">
+                  <a href="/vue-admin-templates/" class="nav-link">Vue Admin Templates</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-custom menu-item-object-custom">
+                  <a href="https://www.bootstrapdash.com/material-design-dashboard/" class="nav-link">Material Admin</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-custom menu-item-object-custom">
+                  <a href="/html5-basic-template/" class="nav-link">Basic html5 templates</a>
+                </li>
+              </ul>
+            </li>
+            <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown">
+              <a href="#" class="nav-link dropdown-toggle" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">Bundles</a>
+              <ul class="sub-menu dropdown-menu" aria-labelledby="dropdownMenuButton2">
+                <li class="dropdown-item menu-item menu-item-type-post_type menu-item-object-page">
+                  <a href="https://www.bootstrapdash.com/mega-bundle" class="nav-link">Mega Bundle</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-post_type menu-item-object-page">
+                  <a href="https://www.bootstrapdash.com/bootstrap-bundle" class="nav-link">Bootstrap</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-post_type menu-item-object-page">
+                  <a href="https://www.bootstrapdash.com/angular-bundle" class="nav-link">Angular</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-post_type menu-item-object-page">
+                  <a href="https://www.bootstrapdash.com/react-bundle" class="nav-link">React</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-post_type menu-item-object-page">
+                  <a href="https://www.bootstrapdash.com/vue-bundle" class="nav-link">Vue</a>
+                </li>
+              </ul>
+            </li>
+            <li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-has-children dropdown">
+              <a href="#" class="nav-link dropdown-toggle" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">Freebies</a>
+              <ul class="sub-menu dropdown-menu" aria-labelledby="dropdownMenuButton3">
+                <li class="dropdown-item menu-item menu-item-type-post_type menu-item-object-page">
+                  <a href="https://www.bootstrapdash.com/all-free-templates" class="nav-link">All Free templates</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-custom menu-item-object-custom">
+                  <a href="/bootstrap-free-admin-templates/" class="nav-link">Admin &amp; Dashboards</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-custom menu-item-object-custom">
+                  <a href="https://www.bootstrapdash.com/free-ui-kits/" class="nav-link">UI Kits <span
+                      class="new-badge">New</span>
+                  </a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-custom menu-item-object-custom">
+                  <a href="https://www.bootstrapdash.com/product/material-design-template-free/" class="nav-link">Material
+                    Design</a>
+                </li>
+                <li class="dropdown-item menu-item menu-item-type-custom menu-item-object-custom">
+                  <a href="/free-landing-page-templates/" class="nav-link">Landing, Pricing and more</a>
+                </li>
+              </ul>
+            </li>
+            <li class="menu-item menu-item-type-post_type menu-item-object-page">
+              <a href="https://www.bootstrapdash.com/blog" class="nav-link">Blog</a>
+            </li>
+            <li class="menu-item menu-item-type-post_type menu-item-object-page">
+              <a href="https://www.bootstrapdash.com/offers" class="nav-link">
+                <span class="text-danger">Offers</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="nav-right-item mr-0 ml-auto">
+          <ul class="navbar-nav mr-auto align-items-lg-center align-items-start">
+            <li class="nav-item ">
+              <a class="navbar-btn" href="https://www.bootstrapdash.com/my-account"> Login/Register </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </header>
+</section>

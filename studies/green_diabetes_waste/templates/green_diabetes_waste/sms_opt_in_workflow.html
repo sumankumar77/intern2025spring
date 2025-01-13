@@ -1,0 +1,181 @@
+{% load static %}
+{% load i18n %}
+{% load analytics_tags %}
+
+<html lang="en-us">
+<head>
+  <title>Opt-in Workflow</title>
+
+  <meta charset="UTF-8"/>
+  <meta name="created" content="{% now 'jS M Y h:i' %}"/>
+  <meta name="description" content="¡Salud, Salud! resource links.">
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="google-site-verification" content="w_YCiFNTFUlln9UmfkJx2K8E7ib9CCgDm62bW3Qe90M"/>
+
+  <link rel="icon" href="{% static 'main/favicon.png' %}"/>
+
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    html {
+      -webkit-font-smoothing: antialiased;
+      text-size-adjust: 100%;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    body {
+      background: #f0eff5 !important;
+      margin: 0;
+      color: rgb(29, 30, 32);
+      font-size: 1rem;
+      font-weight: 400;
+      line-height: 1.4;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+      overflow-y: scroll;
+    }
+    .main {
+      padding-bottom: 48px;
+    }
+    .header-image {
+      width: 100%;
+      padding: 0 12px;
+    }
+    .header-image img {
+      display: block;
+      margin: 0 auto;
+      padding: 15px 0;
+      width: 100%;
+    }
+    .heading {
+      -webkit-align-self: center;
+      -ms-flex-item-align: center;
+      -ms-grid-row-align: center;
+      align-self: center;
+      /*font-size: 48px;*/
+      text-align: center;
+    }
+    .css-hc5hwb {
+      width: 100%;
+      max-width: 900px;
+      padding: 0 24px;
+      margin: 0 auto;
+      position: relative;
+      box-sizing: border-box;
+    }
+    .css-1da3zip {
+      font-family: Raleway, sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.65em;
+      position: relative;
+      color: rgb(28, 28, 30);
+    }
+    .css-1da3zip .ProseMirror {
+      position: relative;
+      outline: none;
+      overflow-wrap: break-word;
+      /*white-space: break-spaces;*/
+      font-variant-ligatures: none;
+      font-feature-settings: "liga" 0;
+      padding: 1px 0 0;
+    }
+    .css-1da3zip p {
+      margin-top: 1.4em !important;
+      padding-bottom: 0 !important;
+    }
+    .css-1da3zip .custom-p {
+      margin-top: 1.5rem !important;
+      padding-bottom: 0 !important;
+    }
+    .css-1da3zip p, .css-1da3zip ol, .css-1da3zip ul, .css-1da3zip li, .css-1da3zip pre, .css-1da3zip blockquote, .css-1da3zip h1, .css-1da3zip h2, .css-1da3zip h3, .css-1da3zip h4, .css-1da3zip h5, .css-1da3zip h6 {
+      margin: 0;
+      padding: 0;
+    }
+    .css-1da3zip h5 {
+      font-size: 0.8em;
+    }
+    .css-1da3zip strong {
+      font-weight: 600;
+    }
+    .css-1da3zip a {
+      color: rgb(157, 138, 124);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .css-1da3zip h1, .css-1da3zip h2, .css-1da3zip h3, .css-1da3zip h4, .css-1da3zip h5, .css-1da3zip h6 {
+      font-family: Montserrat, sans-serif;
+      margin-top: 1.68rem;
+      font-weight: 400;
+      line-height: 1.4em;
+    }
+    .css-fwokkq img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .css-4zgdw7 h3 {
+      font-size: 1em;
+      font-weight: 600;
+      margin: 0;
+    }
+    .css-7tjnmj p {
+      margin: 0;
+    }
+    .center {
+      margin: auto;
+      padding: 10px;
+    }
+    .doc-list > .doc-item > a {
+      color: #0b5ed7!important;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;1,400;1,700|Raleway:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap">
+
+  {% block tracking %}
+  {% posthog_tracking %}
+  {% endblock %}
+
+</head>
+<body marginheight="0">
+
+<div class="main">
+
+  <div class="content">
+    <div>
+      <div class="css-hc5hwb">
+        <div class="css-1da3zip">
+          <div class="ProseMirror">
+            <h1 class="heading">Green Diabetes Waste Study SMS Opt-in Workflow</h1>
+            <h3>Quantifying the Amount of Environmental Waste Associated with Devices and Technology</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="center" style="max-width: 800px">
+      <img style="max-width: 800px" src="{% static 'main/gdw/sms-opt-in-workflow.png' %}" alt="Opt-in Workflow">
+    </div>
+
+    <div>
+      <div class="css-hc5hwb">
+        <div class="css-1da3zip">
+          <div class="ProseMirror doc-list">
+            <div class="doc-item"><a href="{% url 'pdf_view' app='gdw' filename='protocol' %}">Recruitment Protocol</a></div>
+            <div class="doc-item"><a href="{% url 'pdf_view' app='gdw' filename='recruitment-flyer' %}">Recruitment Flyer</a></div>
+            <div class="doc-item"><a href="{% url 'pdf_view' app='gdw' filename='consent-form' %}">*Consent form</a></div>
+            <div class="doc-item"><a href="{% url 'pdf_view' app='gdw' filename='irb-approval-letter' %}">IRB Approval Letter</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

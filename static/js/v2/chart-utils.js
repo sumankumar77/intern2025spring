@@ -1,0 +1,1582 @@
+// Require chartjs and app.js
+var chartUtils = window.chartUtils || {};
+
+chartUtils = (function() {
+  'use strict';
+
+  const UNIT_MINUTE = 'min';
+  const UNIT_CALORIE = 'Cal';
+  const UNIT_WEIGHT = 'lbs';
+  const UNIT_WATER = 'oz';
+  const UNIT_BG = 'mg/dL';
+  const UNIT_BP = 'mmHg';
+  const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const BORDER_DASH_SET = [undefined, [10, 4], [5, 5], [10, 5]];
+  const POINT_STYLE_SET = ['circle', 'rect', 'triangle', 'cross', 'star'];
+  const COLOR_SET = [
+    "#18D5D1",
+    "#ffc107",
+    "#4dbd74",
+    "#f86c6b",
+    "#2243B6",
+    "#CC0099",
+    "#20a8d8",
+    "#A7F432",
+    "#5946B2",
+    "#5DADEC",
+    "#299617",
+    "#FF5470",
+    "#FF7A00",
+    "#0048BA",
+    "#87FF2A",
+    "#FF007C",
+    "#4F81BC",
+    "#C0504E",
+    "#9BBB58",
+    "#23BFAA",
+    "#8064A1",
+    "#4AACC5",
+    "#F79647",
+    "#33558B",
+    "#369EAD",
+    "#C24642",
+    "#7F6084",
+    "#86B402",
+    "#A2D1CF",
+    "#C8B631",
+    "#6DBCEB",
+    "#A064A1",
+    "#F79647",
+    "#59A618",
+    "#0fb3d0",
+  ];
+
+  const RE_US_DATETIME = /(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},\s+\d{4},\s+\d{1,2}:\d{2}:\d{2}\s+[AaPp][Mm]/;
+  const RE_US_DATE = /(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},\s+\d{4}/;
+  const RE_ISO_DATETIME_LONG_TZ = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d{3}[+-][0-2]\d:[0-5]\d|Z/;  // 2019-01-01T12:00:00.000-05:00
+  const RE_ISO_DATETIME_TZ = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d[+-][0-2]\d:[0-5]\d|Z/;  // 2019-01-01T12:00:00-05:00
+  const RE_ISO_DATETIME = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d/;  // 2019-01-01T12:00:00
+  const RE_ISO_DATE = /\d{4}-[01]\d-[0-3]\d/;  // 2019-01-01
+
+  function parseValue(val) {
+    const parsedVal = val === null ? null : Number(val);
+    return Number.isNaN(parsedVal) ? val : parsedVal;
+  }
+
+  function parseArray(arr) {
+    return arr.map(el => parseValue(el));
+  }
+
+  //Regular Expressions for Time
+  //HH:MM 12-hour format, optional leading 0
+  const RE_TIME_HHMM_12_OPT = /^(0?[1-9]|1[0-2]):[0-5][0-9]$/;
+  // HH:MM 12-hour format, optional leading 0, mandatory meridiems (AM/PM)
+  const RE_TIME_HHMM_12 = /((1[0-2]|0?[1-9]):([0-5][0-9]) ?([AaPp][Mm]))/;
+  // HH:MM 24-hour with leading 0
+  const RE_TIME_HHMM_24 = /^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
+  // HH:MM 24-hour format, optional leading 0
+  const RE_TIME_HHMM_24_OPT = /^([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
+  // HH:MM:SS 24-hour format with leading 0
+  const RE_TIME_HHMMSS_24 = /(?:[01]\d|2[0-3]):(?:[0-5]\d):(?:[0-5]\d)/;
+
+  function parseTime(time) {
+    if (!!time.match(RE_TIME_HHMM_12)) {
+      const parts = time.split(' '),
+        hm = parts[0].split(':');
+      if (parts[1].toLowerCase() === 'am') {
+        return `${parseInt(hm[0]) > 9 ? hm[0] : '0' + hm[0]}:${hm[1]}:00`;
+      } else {
+        return `${parseInt(hm[0]) + 12}:${hm[1]}:00`;
+      }
+    } else if (!!time.match(RE_TIME_HHMM_24)) {
+      return time + ':00';
+    } else if (!!time.match(RE_TIME_HHMM_24_OPT)) {
+      const parts = time.split(':');
+      return `${parts[0].length === 1 ? '0' + parts[0] : parts[0]}:${parts[1]}`;
+    } else if (!!time.match(RE_TIME_HHMMSS_24)) {
+      return time;
+    } else {
+      console.log(`Unknown time ${time}`);
+      return time;
+    }
+  }
+
+  const parseAwareizedIsoDateTime = function (dt, isoDate) {
+    // Parse a string to awareized ISO date time
+    // 'isoDate' is used in case 'time' has no date part
+    if (!!dt.match(RE_ISO_DATETIME_LONG_TZ)) {
+      return dt.substring(0, 19) + dt.substring(23);
+    } else if (!!dt.match(RE_ISO_DATETIME_TZ)) {
+      return dt;
+    } else if (!!dt.match(RE_ISO_DATETIME)) {
+      const isoDate = dt.split('T')[0];
+      return dt + app.getTimeZoneStandard(isoDate);
+    } else if (!!dt.match(RE_ISO_DATE)) {
+      return dt + 'T00:00:00' + app.getTimeZoneStandard(dt);
+    } else if (!!isoDate && isoDate.match(RE_ISO_DATE)) {
+      const parsedTime = parseTime(dt);
+      return `${isoDate}T${parsedTime}` + app.getTimeZoneStandard(isoDate);
+    } else {
+      console.log(`[chartUtils.parseAwareizedIsoDateTime]Unknown date time format ${dt}`);
+      return null;
+    }
+  }
+
+  const parseData = function (data, isArrayInObject) {
+    // Parse 3 types of data from string to value
+    // 1. Dictionary-like data
+    // 2. Array data
+    // 3. Array data as Dictionary-like data value
+    isArrayInObject = typeof isArrayInObject !== 'undefined';
+
+    if (isArrayInObject) {
+      let parsedData = {};
+      for (const key in data) {
+        parsedData[key] = parseArray(data[key]);
+      }
+      return parsedData;
+    } else if (Array.isArray(data)) {
+      return parseArray(data);
+    } else {
+      let parsedData = {};
+      for (const key in data) {
+        parsedData[key] = parseValue(data[key]);
+      }
+      return parsedData;
+    }
+  };
+
+  const parseTimeData = function (data) {
+    if (Array.isArray(data)) {
+      return data.map(function (dp) {
+        const x = parseAwareizedIsoDateTime(dp['x']),
+          y = parseValue(dp['y']);
+        return {'x': x, 'y': y};
+      });
+    } else {
+      return data;
+    }
+  };
+
+  const parseTimeChartData = function (data) {
+    if (Array.isArray(data)) {
+      return data.map(function (dp) {
+        const x = parseAwareizedIsoDateTime(dp['x']),
+          y = parseValue(dp['y']);
+        return {'x': x, 'y': y};
+      });
+    } else {
+      return data;
+    }
+  };
+
+  const formatUsDateTime = function (dt, showWeekday = false) {
+    // dtStr must be RE_US_DATETIME format
+    // e.g. Mar 01, 2024, 6:00:00 AM
+    const strs = dt.split(',').map(x => x.trim());
+    if (strs.length === 3) {
+      const today = new Date(),
+        yr = strs[1] === today.getFullYear().toString() ? '' : `, ${strs[1]}`,
+        strs2 = strs[2].split(' ').map(x => x.trim()),
+        strs3 = strs2[0].split(':'),
+        time = `${strs3[0]}:${strs3[1]}` + strs2[1],
+        weekday = showWeekday ? ` (${WEEK_DAYS[new Date(dt).getDay()]})` : '';
+      return strs[0] + yr + `, ${time}` + weekday;
+    } else {
+      console.log(`[chartUtils.formatUsDateTime]Unknown US date time format ${dt}`);
+      return '';
+    }
+  };
+
+  const formatJsDateTime = function (dt, showWeekday = false) {
+    if (dt instanceof Date) {
+      const today = new Date(),
+        yr = dt.getFullYear() === today.getFullYear() ? '' : `, ${dt.getFullYear()}`,
+        md = dt.toLocaleString('default', {month: 'short', day: 'numeric'}),
+        time = dt.toLocaleString('default', {hour: 'numeric', minute: 'numeric', hour12: true}),
+        weekday = showWeekday ? ` (${WEEK_DAYS[dt.getDay()]})` : '';
+      return md + yr + ', ' + time + weekday;
+    } else {
+      console.log(`[chartUtils.formatJsDate]Unknown JS date time ${dt}`);
+      return '';
+    }
+  }
+
+  const isoDateTimeToUsFormat = function (dt, showWeekday = false) {
+    if (!!dt.match(RE_ISO_DATETIME_LONG_TZ) || !!dt.match(RE_ISO_DATETIME_TZ)) {
+      const jsDt = new Date(dt);
+      return formatJsDateTime(jsDt, showWeekday);
+    } else if (!!dt.match(RE_ISO_DATETIME)) {
+      const jsDt = new Date(dt + app.getTimeZoneStandard(dt.substring(0, 10)));
+      return formatJsDateTime(jsDt, showWeekday);
+    } else if (!!dt.match(RE_ISO_DATE)) {
+      const isoDt = dt + 'T12:00:00' + app.getTimeZoneStandard(dt),
+        jsDt = new Date(isoDt),
+        month = MONTHS[jsDt.getMonth()],
+        yr = jsDt.getFullYear() === new Date().getFullYear() ? '' : `, ${jsDt.getFullYear()}`,
+        weekday = showWeekday ? ` (${WEEK_DAYS[jsDt.getDay()]})` : '';
+      return `${month} ${jsDt.getDate()}` + yr + weekday;
+    } else {
+      console.log(`[chartUtils.isoDateTimeToUsFormat]Unknown date time format ${dt}`);
+      return '';
+    }
+  };
+
+  const getVendorDisplayText = function (vendor) {
+    return vendor.toLowerCase() === 'mymojohealth' ? 'MyMojoHealth' : app.capitalize(vendor);
+  };
+
+  const dateFormatter = function (row, value) {
+    return app.toUsDate(value);
+  };
+
+  const timeFormatter = function (row, value) {
+    if (!!value.match(RE_ISO_DATETIME_LONG_TZ) || !!value.match(RE_ISO_DATETIME_TZ) || !!value.match(RE_ISO_DATETIME)) {
+      const hm = value.substring(11, 16).split(':'),
+        hr = parseInt(hm[0]),
+        ampm = ' ' + (hr > 11 ? 'PM' : 'AM'),
+        hr12 = hr > 12 ? hr - 12 : hr,
+        hr12s = hr12 > 9 ? hr12 : `0${hr12}`;
+      return `${hr12s}:${hm[1]} ${ampm}`;
+    } else {
+      return app.toUsTime(value);
+    }
+  };
+
+  const durationFormatter = function (row, value) {
+    const totalMin = typeof value === 'string' ? parseInt(value) : value;
+    return chartUtils.minToHrMin(totalMin);
+  }
+
+  const hexToRgb = function (color, returnRgbArray = false) {
+    if (typeof color === 'undefined') {
+      console.log('Color undefined in hexToRgb');
+      return 'rgba(0,0,0)';
+    }
+    const hex = color.match(/^#(?:[0-9a-f]{3}){1,2}$/i);
+    if (!hex) {
+      console.log(color + " is not a valid hex color");
+      return 'rgba(0,0,0)';
+    }
+    let r, g, b;
+    if (color.length === 7) {
+      r = parseInt(color.substring(1, 3), 16);
+      g = parseInt(color.substring(3, 5), 16);
+      b = parseInt(color.substring(5, 7), 16);
+    } else {
+      r = parseInt(color.substring(1, 2), 16);
+      g = parseInt(color.substring(2, 3), 16);
+      b = parseInt(color.substring(3, 5), 16);
+    }
+    return returnRgbArray ? [r, g, b] : `rgba(${r},${g},${b})`;
+  };
+
+  /**
+   * --------------------------------------------------------------------------
+   * CoreUI Utilities (v2.1.6): hex-to-rgba.js
+   * Licensed under MIT (https://coreui.io/license)
+   * --------------------------------------------------------------------------
+   */
+  const hexToRgba = function (color, opacity) {
+    if (opacity === void 0) {opacity = 100;}
+    const rgb = hexToRgb(color, true);
+    return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${(opacity/100).toFixed(2)})`;
+  };
+
+  const changeRgbaOpacity = function changeRgbaOpacity(rgba, opacity) {
+    if (opacity === void 0) {
+      opacity = 100;
+    }
+    return rgba.replace(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+\.\d+)\)$/, 'rgba($1,$2,$3,' + opacity + ')');
+  };
+
+  // TODO: Data < 0 is not tested
+  const optimalTicks = function (dmax, dmin = 0, nTicks = 4) {
+    const def = {
+      tickMin: 0,
+      tickMax: 1,
+      tickStep: 1
+    };
+
+    if (dmin === dmax) {dmin = 0;}
+
+    if (dmin > dmax) {
+      return def;
+    }
+
+    let dy = dmax - dmin,
+        stepSize = dy / nTicks;
+
+    if (stepSize === 0) {
+      stepSize = 1 / nTicks;
+      return [0, 1, stepSize];
+    }
+    if (stepSize >= 1) {
+      let n = 0;
+      while (stepSize > 10) {
+        stepSize = stepSize / 10;
+        n++;
+      }
+      stepSize = Math.round(stepSize);
+      while (n > 0) {
+        stepSize = stepSize * 10;
+        n--;
+      }
+    } else {
+      let n = 0;
+      while (stepSize < 1) {
+        stepSize = stepSize * 10;
+        n++;
+      }
+      stepSize = Math.round(stepSize);
+      while (n > 0) {
+        stepSize = stepSize / 10;
+        n--;
+      }
+    }
+    let ymax = 0;
+    while (ymax < dmax) {
+      ymax = ymax + stepSize;
+    }
+    let ymin = ymax;
+    while (ymin > dmin) {
+      ymin = ymin - stepSize;
+    }
+
+    return {
+      tickMin: ymin,
+      tickMax: ymax,
+      tickStep: stepSize
+    };
+  };
+
+  const extendLastTime = function (data, endTime) {
+    let x = new Date(endTime);
+    x.setTime(x.getTime() + 172800000);  // add 2 days
+    if (Array.isArray(data)) {
+      if (data.length > 0) {
+        const point = {
+          'x': x.toISOString(),
+          'y': data[data.length - 1]['y']
+        };
+        if (data[data.length - 1].hasOwnProperty('z')) {point['z'] = data[data.length - 1]['z']};
+        data.push(point);
+      }
+    }
+    return data;
+  }
+
+  const HealthFitnessTooltip = function (context) {
+    const {chart, tooltip} = context;
+
+    const _parseHeaderTitle = function (title) {
+      // With luxon.js adapter, the title will be parsed into US date time format,
+      // e.g. Mar 01, 2024, 12:00:00 AM if x-axis type is 'time'
+      if (!!title.match(RE_US_DATETIME)) {
+        return formatUsDateTime(title, true);
+      } else {
+        const isoDt = parseAwareizedIsoDateTime(title);
+        if (!!isoDt) {
+          return isoDateTimeToUsFormat(title, true);
+        } else {
+          return title;
+        }
+      }
+    };
+
+    const _parseItemValue = function (value, unit) {
+      if (unit === UNIT_MINUTE) {
+        const hr = Math.floor(value / 60),
+          min = value % 60;
+        return (hr > 0 ? hr + ' ' + '<small>hr</small>' + ' ' : '') + (min > 0 ? min + ' ' + '<small>min</small>' : '');
+      } else {
+        return value.trim() + (!!unit ? ' ' + unit : '');
+      }
+    };
+
+    const _getPointStyle = function (ptStyle, dType) {
+      if (typeof ptStyle == 'string') {
+        return ptStyle;
+      } else if (dType === 'bar') {
+        return 'rect';
+      } else {
+        return 'circle';
+      }
+    };
+
+    const _getOrCreateTooltip = (chart) => {
+      let tooltipEl = chart.canvas.parentNode.querySelector('div');
+      if (!tooltipEl) {
+        tooltipEl = app.createEl(chart.canvas.parentNode, 'div', {class: 'chartjs-tooltip'})
+      }
+      return tooltipEl;
+    };
+
+    const ClassName = {
+      ABOVE: 'above',
+      BELOW: 'below',
+      CHARTJS_TOOLTIP: 'chartjs-tooltip',
+      NO_TRANSFORM: 'no-transform',
+      TOOLTIP_BODY: 'tooltip-body',
+      TOOLTIP_BODY_ITEM: 'tooltip-body-item',
+      TOOLTIP_BODY_ITEM_COLOR: 'tooltip-body-item-color',
+      TOOLTIP_BODY_ITEM_LABEL: 'tooltip-body-item-label',
+      TOOLTIP_BODY_ITEM_VALUE: 'tooltip-body-item-value',
+      TOOLTIP_HEADER: 'tooltip-header',
+      TOOLTIP_HEADER_ITEM: 'tooltip-header-item',
+      TOOLTIP_BODY_ITEM_POINTSTYLES: 'tooltip-body-item-pointstyle',
+    };
+    const Selector = {
+      DIV: 'div',
+      SPAN: 'span',
+    };
+
+    const tooltipEl = _getOrCreateTooltip(chart);
+    // Hide if no tooltip
+    if (tooltip.opacity === 0) {
+      tooltipEl.style.opacity = '0';
+      return;
+    }
+    // Set caret Position
+    tooltipEl.classList.remove(ClassName.ABOVE, ClassName.BELOW, ClassName.NO_TRANSFORM);
+    if (tooltip.yAlign) {
+      tooltipEl.classList.add(tooltip.yAlign);
+    } else {
+      tooltipEl.classList.add(ClassName.NO_TRANSFORM);
+    }
+
+    // Set Text
+    if (tooltip.body) {
+      const titleLines = tooltip.title || [];
+      const tooltipHeader = document.createElement(Selector.DIV);
+      //const datasets = chart.data.datasets;
+
+      tooltipHeader.className = ClassName.TOOLTIP_HEADER;
+      titleLines.forEach((title) => {
+        // title is the chart x-axis label
+        const tooltipHeaderTitle = document.createElement(Selector.DIV);
+        tooltipHeaderTitle.className = ClassName.TOOLTIP_HEADER_ITEM;
+        tooltipHeaderTitle.innerHTML = _parseHeaderTitle(title);
+        tooltipHeader.appendChild(tooltipHeaderTitle);
+      });
+
+      const tooltipBody = document.createElement(Selector.DIV);
+      tooltipBody.className = ClassName.TOOLTIP_BODY;
+      const tooltipBodyItems = tooltip.body.map(item => item.lines);
+      tooltipBodyItems.forEach((item, i) => {
+        //console.log('tooltip', tooltip, item, tooltip.dataPoints[i]);
+        // item is a list with 1 element ?
+        // The element is made of 'datasetLabel: yValue'
+        // For special dataset that requires value transformation,
+        // e.g. sleep from 'min' to 'hr min', use datasetLabel = '[vendor]:[measure]'
+        if (Array.isArray(item) && typeof item[0] === 'string') {
+          const tooltipDataset = tooltip.dataPoints[i].dataset;
+          const tooltipBodyItem = app.createEl(tooltipBody, 'div', {class: ClassName.TOOLTIP_BODY_ITEM});
+          const colors = tooltip.labelColors[i];
+          const psClass = ClassName.TOOLTIP_BODY_ITEM_POINTSTYLES + '-' + _getPointStyle(tooltipDataset.pointStyle, tooltipDataset.type);
+          const colorIndicator = app.createEl(tooltipBodyItem, 'span', {
+            class: `${ClassName.TOOLTIP_BODY_ITEM_COLOR} ${psClass}`,
+            style: `background-color: ${changeRgbaOpacity(colors.backgroundColor, 1)}`
+          });
+          // realx and realy are for dataset with only 1 data point.
+          // Replace tooltipHeader;
+          const realx = tooltipDataset['realx'];
+          if (!!realx) {
+            const header = tooltipHeader.querySelector('.' + ClassName.TOOLTIP_HEADER_ITEM);
+            if (!!header) {header.remove();}
+            //const tooltipHeaderTitle = document.createElement(Selector.DIV);
+            //tooltipHeaderTitle.className = ClassName.TOOLTIP_HEADER_ITEM;
+            //tooltipHeaderTitle.innerHTML = _parseHeaderTitle(realx);
+            //tooltipHeader.appendChild(tooltipHeaderTitle);
+            app.createEl(tooltipHeader, 'div', {
+              class: ClassName.TOOLTIP_HEADER_ITEM,
+              innerHTML: _parseHeaderTitle(realx)
+            });
+          }
+          const subTitle = tooltipDataset['subTitle'];
+          if (!!subTitle) {
+            app.createEl(tooltipHeader, 'div', {
+              class: 'tooltip-sub-header',
+              innerHTML: subTitle
+            });
+          }
+          const realy = tooltipDataset['realy'];
+          const unit = tooltipDataset['unit'] || '';
+          const labels = item[0].split(':');
+          if (labels.length > 1) {
+            app.createEl(tooltipBodyItem, 'span', {
+              class: ClassName.TOOLTIP_BODY_ITEM_LABEL,
+              innerHTML: labels[0].trim()
+            });
+            app.createEl(tooltipBodyItem, 'span', {
+              class: ClassName.TOOLTIP_BODY_ITEM_VALUE,
+              innerHTML: _parseItemValue(labels[1], unit)
+            });
+          } else {
+            app.createEl(tooltipBodyItem, 'span', {
+              class: ClassName.TOOLTIP_BODY_ITEM_VALUE,
+              innerHTML: item[0] + ` ${unit}`
+            });
+          }
+        }
+      });
+      tooltipEl.innerHTML = '';
+      tooltipEl.appendChild(tooltipHeader);
+      tooltipEl.appendChild(tooltipBody);
+    }
+
+    const positionY = chart.canvas.offsetTop;
+    const positionX = chart.canvas.offsetLeft;
+    const canvasRect = chart.canvas.getBoundingClientRect();
+    const tooltipRect = tooltipEl.getBoundingClientRect();
+    const half = Math.ceil(tooltipRect.width / 2)
+    const absX = canvasRect.x + positionX + tooltip.caretX;
+    const width = window.innerWidth - 10;  // 10px for edge
+    const tooltipX = absX + half > width ? width - canvasRect.x - half : (absX - half < 10 ? half - canvasRect.x + 10 : positionX + tooltip.caretX);
+
+    // Display, position
+    tooltipEl.style.opacity = '1';
+    tooltipEl.style.left = tooltipX + "px";
+    tooltipEl.style.top = positionY + tooltip.caretY + "px";
+  }
+
+  const toWeekDay = function (data) {
+    if (typeof data === 'string') {
+      // ISO date needs to be parsed to ISO date time
+      const isoDt = parseAwareizedIsoDateTime(data);
+      const dt = new Date(isoDt);
+      return WEEK_DAYS[dt.getDay()];
+    } else if (Array.isArray(data)) {
+      return data.map(d => WEEK_DAYS[(new Date(d)).getDay()]);
+    } else {
+      return data;
+    }
+  };
+
+  const toUsMonthDay = function (data) {
+    if (app.isUsDate(data)) {
+      return data.substring(0, 5);
+    } else if (app.isIsoDate(data)) {
+      return `${data.substring(5,7)}/${data.substring(8)}`;
+    } else {
+      return data;
+    }
+  };
+
+  const minToHrMin = function (data) {
+    const totalMin = typeof data === 'string' ? parseInt(data) : data;
+    if (!!totalMin) {
+      const hr = Math.floor(totalMin / 60),
+        min = totalMin % 60,
+        res = (hr > 0 ? hr + ' ' + 'hr' + ' '  : '') + (min === 0 ? '' : min + ' ' + 'min');
+      return res.trim();
+    }
+    return `${data}`;
+  }
+
+  const imageFromSVG = function (svg, color) {
+    const img = new Image();
+    let xml = (new XMLSerializer).serializeToString(svg);
+    if (!!color) {
+      xml = xml.replaceAll('fill: rgb(0,0,0)', `fill: ${hexToRgb(color)}`);
+    }
+    img.src = "data:image/svg+xml;charset=utf-8," + xml;
+    return img;
+  };
+
+  /* Simple Chart */
+  function SimpleChart (container, options) {
+    const t = this;
+    t.outerContainer = container;
+    t.config(options);
+    t.init();
+  }
+
+  SimpleChart.prototype.config = function (s) {
+    const t = this;
+    t.data = s.data || {};
+    t.type = s.type || 'line';
+    t.barPercentage = s.barPercentage || 0.6;
+    t.width = s.width;
+    t.colors = s.colors || COLOR_SET;
+    t.borderdashes = s.borderdashes || BORDER_DASH_SET;
+    t.pointstyles = s.pointstyles || POINT_STYLE_SET;
+    t.datasetLabels = s.datasetLabels;    // labels for data set
+    t.datasetSubTitles = s.datasetSubTitles;    // subTitle for tooltip
+    t.chartLabels = s.chartLabels;    // X-axis labels for the chart
+    t.unit = s.unit;
+    t.options = s.options || {};
+  };
+
+  SimpleChart.prototype.init = function () {
+    const t = this;
+    const docFrag = document.createDocumentFragment();
+    t.chartWrapper = app.createEl(docFrag, 'div', {class: 'chart-wrapper',});
+    if (t.width != null) {
+      t.chartWrapper.style = `width:${t.width}px`;
+    }
+    t.innerContainer = app.createEl(t.chartWrapper, 'div', {class: 'chart-container',});
+    t.canvasWrapper = app.createEl(t.innerContainer, 'div', {class: 'canvas-wrapper'});
+    t.canvas = app.createEl(t.canvasWrapper, 'canvas');
+    t.timeseries();
+    t.outerContainer.appendChild(docFrag);
+  };
+
+  SimpleChart.prototype.getDataMinMax = function (data) {
+    let min = 99999999, max = 0;
+    for (let i = 0; i < data.length; i++) {
+      if (data[i] > max) max = data[i];
+      if (data[i] < min) min = data[i];
+    }
+    if (min > max) {min = max;}
+    return [min, max];
+  };
+
+  SimpleChart.prototype.timeseries = function () {
+    const t = this;
+
+    let datasets = [];
+    if (t.options.scales.x.type === 'time') {
+      for (let i = 0; i < t.data.length; i++) {
+        datasets.push({
+          label: (!!t.datasetLabels && t.datasetLabels.length > i) ? t.datasetLabels[i] : `dataset ${i}`,
+          data: t.data[i],
+          backgroundColor: t.colors[i % t.colors.length],
+          fill: false,
+          unit: t.unit,
+          subTitle: (!!t.datasetSubTitles && t.datasetSubTitles.length > i) ? t.datasetSubTitles[i] : null,
+        });
+      }
+    } else {
+      for (let i = 0; i < t.data.length; i++) {
+        const color = t.colors[i % t.colors.length],
+          ys = t.data[i];
+        datasets.push({
+          label: !!t.datasetLabels ? t.datasetLabels[i] : `dataset ${i}`,
+          data: parseData(ys),
+          backgroundColor: t.type === 'line' ? hexToRgba(color, 10) : hexToRgba(color, 75),
+          borderColor: color,
+          fill: true,
+          borderDash: t.borderdashes[i % t.borderdashes.length],
+          hoverBackgroundColor: color,
+          //pointBackgroundColor: customColor.bind(null, 75),
+          pointStyle: t.type === 'bar' ? 'rect' : t.pointstyles[i % t.pointstyles.length],
+          barPercentage: t.barPercentage,
+          unit: t.unit,
+          subTitle: (!!t.datasetSubTitles && t.datasetSubTitles.length > i) ? t.datasetSubTitles[i] : null,
+        });
+      }
+    }
+
+    if (!!t.chart) {
+      t.chart.data.labels = t.chartLabels;
+      t.chart.data.datasets = datasets;
+      t.chart.update();
+    } else {
+      t.chart = new Chart(t.canvas, {
+        type: t.type,
+        data: {
+          labels: t.chartLabels,
+          datasets: datasets
+        },
+        options: t.options,
+      });
+      t.canvas.style.touchAction = "auto";
+      t.canvas.style.webkitUserDrag = "";
+    }
+  }
+
+  SimpleChart.prototype.update = function (data, labels) {
+    const t = this;
+    t.data = data;
+    t.chartLabels = labels;
+    t.timeseries();
+  }
+
+  const DATE_SELECTOR_PERIOD_OPTIONS = {
+    '1-week': 7,
+    '1-month': 30,
+    '3-month': 90,
+    '1-year': 365
+  };
+  /*
+    Date Selector
+   */
+  function DateSelector(container, options) {
+    const t = this;
+    t.container = container;
+    t.config(options);
+    t.init();
+  }
+
+  DateSelector.prototype.config = function (s) {
+    const t = this;
+    t.id = s.id || Math.random().toString(36).substring(2, 9);
+    t.initial = s.initial || '1-week';
+    t.numOfDays = DATE_SELECTOR_PERIOD_OPTIONS[t.initial] || 7;
+    // For internal dates, always use ISO date string
+    t.endDate = s.endDate || app.toIsoDate(new Date());
+    t.startDate = app.dateCal(t.endDate, 1-t.numOfDays);
+    t.submitButtonClass = s.submitButtonClass || 'btn btn-primary form-submit';
+    t.submitButtonText = s.submitButtonText || 'Submit';
+    t.onChange = typeof s.onChange === 'function' ? s.onChange : (sd, ed) => {};
+  };
+
+  DateSelector.prototype.init = function () {
+    const t = this;
+    t.render();
+  };
+
+  DateSelector.prototype.render = function () {
+    const t = this;
+
+    const docFrag = document.createDocumentFragment();
+    const selectContainer = app.createEl(docFrag, 'div', {class: 'row', id: t.id});
+    const col1 = app.createEl(selectContainer, 'div', {class: 'col-12'});
+    const btnGroup1 = app.createEl(col1, 'div', {class: 'btn-group', role: 'group', 'aria-label': 'Select Date Range'});
+    t.btnPrev = app.createEl(btnGroup1, 'button', {type: 'button', class: 'btn btn-outline-custom prev-dates'});
+    app.createEl(t.btnPrev, 'span', {class: 'material-symbols-outlined', innerHTML: 'chevron_left'});
+    const dropdown = app.createEl(btnGroup1, 'div', {class: 'dropdown'});
+    t.btnDropdown = app.createEl(dropdown, 'button', {
+      type: 'button', 'data-bs-toggle': 'dropdown', 'data-bs-auto-close': 'outside',
+      class: 'btn btn-outline-custom btn-mid squared dropdown select-dates'
+    });
+    t.calendar = app.createEl(t.btnDropdown, 'span', {class: 'material-symbols-outlined', innerHTML: 'edit_calendar'});
+    t.startDateDisplay = app.createEl(t.btnDropdown, 'span', {innerHTML: app.toUsDate(t.startDate)});
+    app.createEl(t.btnDropdown, 'span', {innerHTML: ' - '});
+    t.endDateDisplay = app.createEl(t.btnDropdown, 'span', {innerHTML: app.toUsDate(t.endDate)});
+    t.dropdownMenu = app.createEl(dropdown, 'div', {class: 'dropdown-menu'});
+    const formWrapper = app.createEl(t.dropdownMenu, 'div', {class: 'form-wrapper'});
+    t.startDatePicker = new app.DateTimeField({
+      container: formWrapper,
+      label: 'Start Date',
+      name: `start_date_${t.id}`,
+      id: `id_start_date_${t.id}`,
+      initial: app.toJsDate(t.startDate),
+    });
+    //formWrapper.appendChild(t.startDatePicker.fieldEl);
+    t.endDatePicker = new app.DateTimeField({
+      container: formWrapper,
+      label: 'End Date',
+      name: `end_date_${t.id}`,
+      id: `id_end_date_${t.id}`,
+      initial: app.toJsDate(t.endDate),
+    });
+    //formWrapper.appendChild(t.endDatePicker.fieldEl);
+    t.submitButton = app.createEl(formWrapper, 'button', {
+      class: t.submitButtonClass,
+      innerHTML: t.submitButtonText
+    });
+    t.submitButton.addEventListener('click', () => {
+      const newStartDate = app.toJsDate(t.startDatePicker.value());
+      t.updateStartDate(newStartDate);
+      const newEndDate = app.toJsDate(t.endDatePicker.value());
+      t.updateEndDate(newEndDate);
+
+      // Uncheck all radio buttons
+      if (!!t.dpButtons) {
+        t.dpButtons.forEach((btn) => {
+          const inputId = btn.getAttribute('for');
+          const input = document.getElementById(inputId);
+          input.checked = false;
+        });
+      }
+      // Collapse dropdown menu and make btnDropdown active
+      t.btnDropdown.classList.remove('show');
+      t.btnDropdown.setAttribute('aria-expanded', 'false');
+      t.dropdownMenu.classList.remove('show');
+      t.dropdownMenu.setAttribute('style', '');
+      t.dropdownMenu.removeAttribute('data-popper-placement');
+      t.btnDropdown.classList.add('active');
+
+      t.onChange(t.startDate, t.endDate);
+    });
+
+    t.btnNext = app.createEl(btnGroup1, 'button', {type: 'button', class: 'btn btn-outline-custom next-dates disabled'});
+    app.createEl(t.btnNext, 'span', {class: 'material-symbols-outlined', innerHTML: 'chevron_right'});
+
+    const btnGroup2 = app.createEl(col1, 'div', {
+      class: 'btn-group float-right dropdown-custom',
+      role: 'group', 'aria-label': 'Dropdown Select Date Period'
+    });
+    const btnDropdown2 = app.createEl(btnGroup2, 'button', {class: 'btn d-md-none pt-2 pb-0 px-0', type: 'button'});
+    app.createEl(btnDropdown2, 'span', {class: 'material-symbols-outlined', innerHTML: 'menu'});
+    const dropdownMenu2 = app.createEl(btnGroup2, 'div', {class: 'dropdown-menu-custom dropdown-menu-right'});
+    const buttons = [{text: '1 week', value: '7'}, {text: '1 month', value: '30'}, {text: '3 months', value: '90'}, {text: '1 year', value: '365'}];
+    t.dpButtons = [];
+    buttons.forEach((e, idx) => {
+      const item = app.createEl(dropdownMenu2, 'div', {class: 'dropdown-item-custom'});
+      const input = app.createEl(item, 'input', {
+        type: 'radio', class: 'btn-check', name: 'data-period', autocomplete: 'off',
+        value: e.value, id: `${t.metric}-period-${idx}`
+      });
+      if (idx === 0) {input.checked = true;}
+      const label = app.createEl(item, 'label', {
+        class: 'dropdown-item-label-custom btn btn-outline-custom border-0',
+        for: `${t.metric}-period-${idx}`, innerHTML: e.text
+      });
+      t.dpButtons.push(label);
+    });
+    btnDropdown2.addEventListener('click', (e) => {
+      const dd = e.target.closest('.dropdown-custom');
+      if (!!dd) {
+        const ddMenu = dd.querySelector('.dropdown-menu-custom');
+        if (!!ddMenu) {
+          ddMenu.classList.toggle('show');
+        }
+      }
+    });
+
+    //const chartContainer = app.createEl(docFrag, 'div', {class: 'row pt-3'});
+    //const col2 = app.createEl(chartContainer, 'div', {class: 'col-12'});
+    //const card = app.createEl(col2, 'div', {class: 'card card-shadow'})
+    //t.chartCard = app.createEl(card, 'div', {class: 'card-body card-chart'});
+    t.container.appendChild(docFrag);
+
+    // Add event listeners
+    t.dpButtons.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const inputId = e.target.getAttribute('for');
+        const input = document.getElementById(inputId);
+        const days = parseInt(input.value);
+        t.updateStartDate(app.dateCal(t.endDate, 1 - days));
+        t.onChange(t.startDate, t.endDate);
+        // deactivate btnDropdown
+        t.btnDropdown.classList.remove('active');
+      });
+    });
+    t.btnPrev.addEventListener('click', (e) => {
+      const newStartDate = app.dateCal(t.startDate, -t.numOfDays);
+      const newEndDate = app.dateCal(t.endDate, -t.numOfDays);
+      t.updateStartDate(newStartDate);
+      t.updateEndDate(newEndDate);
+      t.onChange(t.startDate, t.endDate);
+    });
+    t.btnNext.addEventListener('click', (e) => {
+      let newEndDate = app.dateCal(t.endDate, t.numOfDays),
+        today = new Date();
+      if (newEndDate > today) {
+        newEndDate = today;
+      }
+      const newStartDate = app.dateCal(newEndDate, 1 - t.numOfDays);
+      t.updateStartDate(newStartDate);
+      t.updateEndDate(newEndDate);
+      t.onChange(t.startDate, t.endDate);
+    });
+  };
+
+  DateSelector.prototype.updateStartDate = function (newStartDate) {
+    const t = this;
+    t.startDate = app.toIsoDate(newStartDate);
+    t.startDateDisplay.innerHTML = app.toUsDate(t.startDate);
+    //console.log('updateStart Date set startDatePicker', t.startDate, app.toJsDate(t.startDate));
+    t.startDatePicker.setValue(app.toJsDate(t.startDate));
+    t.numOfDays = app.dateDiff(t.startDate, t.endDate) + 1;
+  };
+
+  DateSelector.prototype.updateEndDate = function (newEndDate) {
+    const t = this;
+    t.endDate = app.toIsoDate(newEndDate);
+    t.endDateDisplay.innerHTML = app.toUsDate(t.endDate);
+    t.endDatePicker.setValue(app.toJsDate(t.endDate));
+    t.numOfDays = app.dateDiff(t.startDate, t.endDate) + 1;
+    // Update btnNext status if necessary
+    if (t.endDate === app.toIsoDate(new Date())) {
+      t.btnNext.classList.add('disabled');
+    } else {
+      t.btnNext.classList.remove('disabled');
+    }
+  };
+
+  /*************************
+    All in one chart
+   *************************/
+  const DATA_CAT_FD = 'food',
+    DATA_CAT_ACT = 'activity',
+    DATA_CAT_SLP = 'sleep',
+    DATA_CAT_CAL = 'calories',
+    DATA_CAT_WT = 'weight',
+    DATA_CAT_STP = 'steps',
+    DATA_CAT_WTR = 'water',
+    DATA_CAT_FL = 'floors',
+    DATA_CAT_BG = 'blood_glucose',
+    DATA_CAT_BP = 'blood_pressure';
+
+  // The order to plot the data category if present
+  const DATA_CAT_ORDER = [DATA_CAT_BG, DATA_CAT_BP, DATA_CAT_WT, DATA_CAT_STP, DATA_CAT_FD, DATA_CAT_ACT, DATA_CAT_SLP];
+
+  const DATA_CAT_TO_AXIS_TITLE = {
+    [DATA_CAT_FD]: 'Intake Calories',
+    [DATA_CAT_ACT]: 'Activity Calories',
+    [DATA_CAT_SLP]: 'Sleep Duration',
+    [DATA_CAT_CAL]: 'Calories',
+    [DATA_CAT_WT]: 'Weight',
+    [DATA_CAT_STP]: 'Steps',
+    [DATA_CAT_FL]: 'Floors',
+    [DATA_CAT_BG]: 'Blood Glucose',
+    [DATA_CAT_BP]: 'Blood Pressure'
+  };
+
+  const DTYPE_TIME_SERIES = 'ts',
+    DTYPE_TIME = 'time',
+    DTYPE_LOG = 'log';
+
+  const POINT_STYLES = ['circle', 'rect', 'triangle', 'rectRot', 'cross'];
+
+
+  function AioChart(container, options) {
+    const t = this;
+    t.container = container;
+    t.config(options);
+    t.init();
+  }
+
+  AioChart.prototype.config = function (s) {
+    const t = this;
+    t.data = s.data;
+    t.startDate = app.toIsoDate(s.startDate);
+    t.endDate = app.toIsoDate(s.endDate);
+    t.numOfPointsSmall = s.numOfPointsSmall || 30;
+    t.numOfPointsMedium = s.numOfPointsMedium || 90;
+    t.numOfPointsLarge = s.numOfPointsLarge || 100;
+    t.smallPointStyles = s.smallPointStyles || {};
+    t.mediumPointStyles = s.mediumPointStyles || {};
+    t.largePointStyles = s.largePointStyles || {};
+  };
+
+  AioChart.prototype.init = function () {
+    this.render();
+  };
+
+  AioChart.prototype.parseAwareizedDateTime = function (time, isoDate) {
+    // 'isoDate' is used in case 'time' has no date part
+    if (!!time.match(RE_ISO_DATETIME_LONG_TZ)) {
+      return time.substring(0, 19) + time.substring(23);
+    } else if (!!time.match(RE_ISO_DATETIME_TZ)) {
+      return time;
+    } else if (!!time.match(RE_ISO_DATETIME)) {
+      return time + app.getTimeZoneStandard(time.substring(0, 10));
+    } else {
+      const parsedTime = chartUtils.parseTime(time);
+      return `${isoDate}T${parsedTime}` + app.getTimeZoneStandard(isoDate);
+    }
+  }
+
+  AioChart.prototype.parseData = function (data) {
+    const parseNumber = function (val) {
+      const parsedVal = val === null ? null : Number(val);
+      if (Number.isNaN(parsedVal)) {
+        console.log(`[AioChart.parseNumber]Unknown value ${val}`);
+        return null;
+      } else {
+        return parsedVal;
+      }
+    };
+    const parseObject = function (obj) {
+      if (!!obj) {
+        return obj.hasOwnProperty('x') && obj.hasOwnProperty('y') ? {x: obj.x, y: parseNumber(obj.y)} : parseNumber(obj);
+      } else {
+        return obj;
+      }
+    };
+    return Array.isArray(data) ? data.map(el => parseObject(el)) : parseObject(data);
+  }
+
+  AioChart.prototype.getPointConfig = function (numOfPoints, dataCat, idx, dsColor, vendor) {
+    const t = this;
+    let style;
+    const defaultStyle = POINT_STYLES[idx % POINT_STYLES.length];
+    if (numOfPoints <= t.numOfPointsSmall) {
+      style = vendor === 'dexcom' ? defaultStyle : (t.smallPointStyles[dataCat] || defaultStyle);
+    } else if (numOfPoints <= t.numOfPointsMedium) {
+      style = vendor === 'dexcom' ? defaultStyle : (t.mediumPointStyles[dataCat] || defaultStyle);
+    } else {
+      style = vendor === 'dexcom' ? defaultStyle : (t.largePointStyles[dataCat] || defaultStyle);
+    }
+    const radius = numOfPoints > t.numOfPointsLarge ? 1 : (numOfPoints > t.numOfPointsMedium ? 2 : (numOfPoints > t.numOfPointsSmall ? 3 : 4));
+    return {
+      style: style,
+      radius: radius,
+    };
+  };
+
+  AioChart.prototype.getYAxisConfig = function (axisIndex, title) {
+    const config = {
+      axis: 'y',
+      display: false,
+    };
+    if (axisIndex === 0 || axisIndex === 1) {
+      config.display = true;
+      config.position = axisIndex === 0 ? 'left' : 'right';
+      if (axisIndex === 0) {
+        config.grid = {
+          display: true,
+          color: 'rgba(0,0,0,0.1)',
+          drawBorder: false,
+          tickMarkLength: 0,
+          lineWidth: 1
+        };
+      } else {
+        config.grid = {
+          display: false,
+        };
+      }
+      config.ticks = {
+        display: true,
+        fontSize: 12,
+        fontColor: 'rgba(0,0,0,1)',
+        padding: 5
+      }
+      if (!!title) {
+        config.title = {
+          display: true,
+          text: title
+        };
+      }
+    }
+    return config;
+  };
+
+  AioChart.prototype.timeSeriesToTimeData = function (timeSeries, time) {
+    const t = this;
+    return timeSeries.map((y, idx) => {
+      const isoDt = app.dateCal(t.startDate, idx);
+      return {
+        x: isoDt + `T${time}` + app.getTimeZoneStandard(isoDt),
+        y: y,
+      };
+    });
+  };
+
+  AioChart.prototype.getTimeDataset = function (label, data, color, ptConf, yAxis, unit, fill, showLine, metric) {
+    return {
+      label: label,
+      data: data,
+      //xAxisID: 'xAxis' + aIndex,    // Update xAxisID after chart is rendered, otherwise code breaks down
+      xAxisID: 'x',  // For time data, always use scale x
+      yAxisID: yAxis,
+      type: 'line',
+      //steppedLine: true,  // https://www.chartjs.org/docs/latest/samples/line/stepped.html
+      showLine: showLine,
+      lineBackgroundColor: 'rgba(0,0,0,0.1)',
+      lineBorderColor: 'rgba(0,0,0,0.1)',
+      lineBorderWidth: Math.max(ptConf.radius - 2, 1),
+      lineStepped: false,
+      lineFill: fill,
+      pointBorderColor: color,
+      pointBackgroundColor: hexToRgba(color, 75),
+      pointStyle: ptConf.style,
+      pointRadius: ptConf.radius,
+      pointHitRadius: Math.min(ptConf.radius * 2, ptConf.radius + 2),
+      pointHoverRadius: Math.min(ptConf.radius * 2, ptConf.radius + 2),
+      unit: unit,
+      subTitle: metric,
+    };
+  };
+
+  AioChart.prototype.getBGDataset = function (vendor, vendorData, dsYAxis, idx) {
+    const t = this;
+    if (vendorData.hasOwnProperty(DTYPE_TIME)) {
+      const parsedData = t.parseData(vendorData[DTYPE_TIME]),
+        label = getVendorDisplayText(vendor),
+        dsColor = '#CC0099',
+        //xys = chartUtils.parseTimeData(t.awareizeTimeData(parsedData)),
+        xys = chartUtils.parseTimeData(parsedData),
+        dsPtConf = t.getPointConfig(xys.length, DATA_CAT_BG, idx, dsColor, vendor),
+        metric = DATA_CAT_TO_AXIS_TITLE[DATA_CAT_BG];
+      return t.getTimeDataset(label, xys, dsColor, dsPtConf, dsYAxis, chartUtils.UNIT_BG, false, true, metric);
+    } else {
+      return null;
+    }
+  };
+
+  AioChart.prototype.getBPDatasets = function (vendor, vendorData, dsYAxis, idx) {
+    const t = this;
+    if (vendorData.hasOwnProperty(DTYPE_TIME)) {
+      const parsedData = t.parseData(vendorData[DTYPE_TIME]),
+        label = getVendorDisplayText(vendor),
+        dsColor1 = '#DC143C',
+        dsColor2 = '#0096FF',
+        //xys = t.awareizeTimeData(parsedData),
+        xy1 = chartUtils.parseTimeData(parsedData.map(xy => {return {x: xy['x'], y: xy['y1']};})),
+        xy2 = chartUtils.parseTimeData(parseData.map(xy => {return {x: xy['x'], y: xy['y2']};})),
+        dsPtConf1 = t.getPointConfig(xy1.length, DATA_CAT_BP, idx, dsColor1),
+        dsPtConf2 = t.getPointConfig(xy2.length, DATA_CAT_BP, idx, dsColor2),
+        metric = DATA_CAT_TO_AXIS_TITLE[DATA_CAT_BP];
+      return [t.getTimeDataset(label, xy2, dsColor2, dsPtConf2, dsYAxis, chartUtils.UNIT_BP, '+1', true, metric),
+        t.getTimeDataset(label, xy1, dsColor1, dsPtConf1, dsYAxis, chartUtils.UNIT_BP, false, true, metric)];
+    } else {
+      return null;
+    }
+  };
+
+  AioChart.prototype.getWTDataset = function (vendor, vendorData, dsYAxis, idx) {
+    const t = this;
+    if (vendorData.hasOwnProperty(DTYPE_TIME) || vendorData.hasOwnProperty(DTYPE_TIME_SERIES)) {
+      const parsedData = t.parseData(vendorData[DTYPE_TIME] || vendorData[DTYPE_TIME_SERIES]);
+      const label = getVendorDisplayText(vendor),
+        dsColor = '#4dbd74',
+        //xys = vendorData.hasOwnProperty(DTYPE_TIME) ? chartUtils.parseTimeData(t.awareizeTimeData(parsedData)) : t.timeSeriesToTimeData(parsedData, '12:00:00'),
+        xys = vendorData.hasOwnProperty(DTYPE_TIME) ? chartUtils.parseTimeData(parsedData) : t.timeSeriesToTimeData(parsedData, '12:00:00'),
+        dsPtConf = t.getPointConfig(xys.length, DATA_CAT_WT, idx, dsColor),
+        metric = DATA_CAT_TO_AXIS_TITLE[DATA_CAT_WT];
+      return t.getTimeDataset(label, xys, dsColor, dsPtConf, dsYAxis, chartUtils.UNIT_WEIGHT, false, true, metric);
+    } else {
+      return null;
+    }
+  };
+
+  AioChart.prototype.getStepsDataset = function (vendor, vendorData, dsYAxis, idx) {
+    const t = this;
+    if (vendorData.hasOwnProperty(DTYPE_TIME_SERIES)) {
+      const parsedData = t.parseData(vendorData[DTYPE_TIME_SERIES]),
+        label = getVendorDisplayText(vendor),
+        dsColor = '#808080',
+        xys = t.timeSeriesToTimeData(parsedData, '23:59:59'),
+        dsPtConf = t.getPointConfig(xys.length, DATA_CAT_STP, idx, dsColor),
+        metric = DATA_CAT_TO_AXIS_TITLE[DATA_CAT_STP];
+      return t.getTimeDataset(label, xys, dsColor, dsPtConf, dsYAxis, null, false, false, metric);
+    } else {
+      return null;
+    }
+  };
+
+  AioChart.prototype.getActDataset = function (vendor, vendorData, dsYAxis, idx) {
+    const t = this;
+    if (vendorData.hasOwnProperty(DTYPE_LOG)) {
+      // DO NOT parse log data
+      const label = getVendorDisplayText(vendor),
+        dsColor = '#f86c6b',
+        logData = vendorData[DTYPE_LOG],
+        timeData = logData.map((log) => {return {x: t.parseAwareizedDateTime(log['start_time'], log['date']), y: log['activity_calories']}}),
+        xys = chartUtils.parseTimeData(timeData),
+        dsPtConf = t.getPointConfig(xys.length, DATA_CAT_ACT, idx, dsColor),
+        metric = DATA_CAT_TO_AXIS_TITLE[DATA_CAT_ACT];
+      return t.getTimeDataset(label, xys, dsColor, dsPtConf, dsYAxis, chartUtils.UNIT_CALORIE, false, false, metric);
+    } else {
+      return null;
+    }
+  };
+
+  AioChart.prototype.getBarDataset = function (label, data, color, xAxis, yAxis, barPercentage, realx, unit, metric) {
+    return {
+      label: label,
+      data: data,
+      xAxisID: xAxis,
+      yAxisID: yAxis,
+      type: 'bar',
+      barPercentage: barPercentage,
+      categoryPercentage: 1,
+      backgroundColor: hexToRgba(color, 25),
+      borderColor: hexToRgba(color, 25),
+      borderWidth: 0,
+      hoverBackgroundColor: hexToRgba(color, 75),
+      realx: realx,
+      unit: unit,
+      subTitle: metric
+    };
+  };
+
+  AioChart.prototype.computeTimeMinMaxForBarDataset = function (awareizedStartTime, durationInMin) {
+    const t = this;
+    const startTimeEpoch = new Date(awareizedStartTime).getTime(),
+      xMinEpoch = new Date(t.xTicksMin).getTime(),
+      xMaxEpoch = new Date(t.xTicksMax).getTime(),
+      deltaMilliSeconds = startTimeEpoch - xMinEpoch;
+    // When using x-axis type = time for bar type data, x.min and x.max are at bar centers.
+    // For chart with time span of 7 days, there will be 8 tick marks, thus 8 bars for bar chart.
+    // 1. Correct for time axis bar type data:
+    let duration = deltaMilliSeconds < 0 ? durationInMin + (deltaMilliSeconds/1000/60) : durationInMin,
+      xMin = xMinEpoch,
+      xMax = xMaxEpoch - 86399000;
+    // 2. Correct for bar center (move bar center to midnight):
+    xMin = xMin + 43200000;
+    xMax = xMax + 43200000;
+    // 3. Correct for bar width (move bar left side to midnight):
+    xMin = xMin - duration * 30000;
+    xMax = xMax - duration * 30000;
+    // 4. Correct for start time
+    //const deltaMilliSeconds = (new Date(awareizedStartTime).getTime()) - (new Date(t.xTicksMin).getTime());
+    if (deltaMilliSeconds > 0) {
+      xMin = xMin - deltaMilliSeconds;
+      xMax = xMax - deltaMilliSeconds;
+    }
+    //console.log('compute time min max', t.xTicksMax, t.xTicksMin, awareizedStartTime, durationInMin, deltaMilliSeconds, xMin, xMax);
+    return {
+      xMin: xMin,
+      xMax: xMax,
+      duration: duration
+    };
+  };
+
+  AioChart.prototype.getSleepDatasets = function (vendor, vendorData, barAxisIdx) {
+    // When a time axis (X) is used for bar type data, x.min and x.max determines the middle
+    const t = this;
+    if (vendorData.hasOwnProperty(DTYPE_LOG)) {
+      // DO NOT t.parseData log data
+      const label = getVendorDisplayText(vendor),
+        dsColor = '#120136',
+        metric = DATA_CAT_TO_AXIS_TITLE[DATA_CAT_SLP];
+      const datasets = [];
+      for (let barIdx = 0; barIdx < vendorData[DTYPE_LOG].length; barIdx++) {
+        const data = vendorData[DTYPE_LOG][barIdx],
+          dsXAxis = `xA${barAxisIdx}B${barIdx}`,
+          dsYAxis = `yA${barAxisIdx}B${barIdx}`,
+          //startTime = `${data['date']}T${chartUtils.parseTime(data['start_time'])}` + app.getTimeZoneStandard(),
+          startTime = t.parseAwareizedDateTime(data['start_time'], data['date']),
+          durationInMin = chartUtils.parseValue(data['sleep_duration']);
+          //barPercentage = durationInMin/60/24 ;
+        // Create a unique pair of x and y axes for each bar dataset (data point)
+        const {xMin, xMax, duration} = t.computeTimeMinMaxForBarDataset(startTime, durationInMin);
+        //console.log('sleep data', durationInMin, xMin, xMax, data['start_time'], startTime, duration);
+        t.chartOptions.scales[dsXAxis] = {
+          axis: 'x',
+          display: false,
+          position: 'top',
+          type: 'time',
+          time: {
+            unit: 'day',
+          },
+          min: xMin,
+          max: xMax,
+        };
+        t.chartOptions.scales[dsYAxis] = {
+          axis: 'y',
+          display: false,
+          position: 'right',
+          min: 0,
+          max: durationInMin
+        };
+        const barPercentage = duration / 60 / 24;
+        datasets.push(t.getBarDataset(label, [durationInMin], dsColor, dsXAxis, dsYAxis, barPercentage, startTime, chartUtils.UNIT_MINUTE, metric));
+      }
+      return datasets;
+    } else {
+      return null;
+    }
+
+  };
+
+  AioChart.prototype.getTimeDataYMinMax = function (data) {
+    let min = 9999999,
+      max = -9999999;
+    data.forEach((e) => {
+      if (!!e.y) {
+        const yv = Number(e.y);
+        if (yv < min) {min = yv;}
+        if (yv > max) {max = yv;}
+      }
+    });
+    if (min === max) {min = 0;}
+    return {
+      ymin: min,
+      ymax: max
+    };
+  };
+
+  AioChart.prototype.render = function () {
+    const t = this;
+
+    const numOfDays = app.dateDiff(t.startDate, t.endDate) + 1;
+    t.chartLabels = app.arrayRange(0, numOfDays-1).map(i => app.dateCal(t.startDate, i));
+    //t.xTicksMin = app.awareizeIsoDate(app.toIsoDate(t.startDate));
+    //t.xTicksMax = app.awareizeIsoDate(app.toIsoDate(t.endDate), true);
+    t.xTicksMin = app.toJsDate(t.startDate).getTime();
+    t.xTicksMax = app.toJsDate(t.endDate).getTime() + 86399999;
+    //console.log(t.startDate, t.endDate, t.chartLabels, t.xTicksMin, t.xTicksMax, t.startDate instanceof Date, typeof t.xTicksMin);
+
+    // Chart options
+    t.chartOptions = {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          enabled: false,
+          external: chartUtils.HealthFitnessTooltip
+        },
+      },
+      scales: {
+        x: {
+          axis: 'x',
+          display: true,
+          min: t.xTicksMin,
+          max: t.xTicksMax,
+          type: 'time',
+          time: {
+            //tooltipFormat: 'MM/DD/YYYY',
+            //displayFormats: {
+            // day: 'MM DD',
+            //},
+            unit: 'day',
+            unitStepSize: 1,
+          },
+          grid: {
+            display: true,
+            color: 'rgba(0,0,0,0.1)'
+          },
+          ticks: {
+            autoSkip: true,
+            fontSize: 12,
+            fontColor: 'rgba(0,0,0,1)',
+            //callback: function (value, index, values) {
+            //  const label = this.getLabelForValue(value);
+            //  console.log(value, label);
+            //  return value;
+            //}
+          },
+        },
+      },
+      hover: {
+        mode: 'nearest',
+        intersect: true
+      }
+    };
+
+    t.datasetsInfo = [];
+    t.datasetIndex = 0;
+    let datasets = [],
+      lineMetricToYAxes = {}, // Metric to axis ID dictionary for line/point data. The same measure will share the same y-axis
+      yAxisIndex = 0;         // Axis index for line/point datasets
+    // DATA_CAT_ORDER dictates line/point datasets are handled before bar datasets (sleep)
+    for (let i = 0; i < DATA_CAT_ORDER.length; i++) {
+      const dataCat = DATA_CAT_ORDER[i];
+      if (!t.data.hasOwnProperty(dataCat)) continue;
+      // Separate handling of line/point datasets and bar datasets
+      if (dataCat === DATA_CAT_SLP) {
+        // This index is used in creating xAxisID and yAxisID per metric per vendor
+        let barAxisIndex = 0;
+        for (const [vendor, vData] of Object.entries(t.data[dataCat])) {
+          let vendorDatasets;
+          switch (dataCat) {
+            case DATA_CAT_SLP:
+              vendorDatasets = t.getSleepDatasets(vendor, vData, barAxisIndex);
+              break;
+          }
+          if (!!vendorDatasets) {
+            vendorDatasets.forEach((dataset) => {
+              datasets.push(dataset);
+              t.datasetsInfo.push({
+                datasetIndex: t.datasetIndex,
+                vendor: vendor,
+                metric: DATA_CAT_TO_AXIS_TITLE[dataCat],
+                xAxisID: dataset.xAxisID,
+                yAxisID: dataset.yAxisID
+              });
+              t.datasetIndex++;
+            });
+            barAxisIndex++;
+          }
+        }
+      } else {
+        let vendorIndex = 0;
+        for (const [vendor, vData] of Object.entries(t.data[dataCat])) {
+          const dsYAxis = lineMetricToYAxes[dataCat] || `yAxis${yAxisIndex}`;
+          // blood pressure has 2 datasets, others have 1.
+          let vendorDatasets;
+          switch (dataCat) {
+            case DATA_CAT_BG:
+              const ds1 = t.getBGDataset(vendor, vData, dsYAxis, vendorIndex);
+              if (!!ds1) {vendorDatasets = [ds1];}
+              break;
+            case DATA_CAT_BP:
+              vendorDatasets = t.getBPDatasets(vendor, vData, dsYAxis, vendorIndex);
+              break;
+            case DATA_CAT_WT:
+              const ds2 = t.getWTDataset(vendor, vData, dsYAxis, vendorIndex);
+              if (!!ds2) {vendorDatasets = [ds2];}
+              break;
+            case DATA_CAT_STP:
+              const ds3 = t.getStepsDataset(vendor, vData, dsYAxis, vendorIndex);
+              if (!!ds3) {vendorDatasets = [ds3];}
+              break;
+            case DATA_CAT_ACT:
+              const ds4 = t.getActDataset(vendor, vData, dsYAxis, vendorIndex);
+              if (!!ds4) {vendorDatasets = [ds4];}
+              break;
+          }
+          if (!!vendorDatasets) {
+            //console.log(dataCat, vendor, vData, vendorDatasets);
+            let yMin, yMax;
+            vendorDatasets.forEach((dataset) => {
+              datasets.push(dataset);
+              t.datasetsInfo.push({
+                datasetIndex: t.datasetIndex,
+                vendor: vendor,
+                metric: DATA_CAT_TO_AXIS_TITLE[dataCat],
+                xAxisID: dataset.xAxisID,
+                yAxisID: dataset.yAxisID
+              });
+              // TODO: need to make sure dataset.data is not string, parse data
+              const yrange = t.getTimeDataYMinMax(dataset.data);
+              yMin = yrange.ymin;
+              yMax = yrange.ymax;
+              t.datasetIndex++;
+            });
+            if (!lineMetricToYAxes.hasOwnProperty(dataCat)) {
+              // Add a new Y-axis for a new metric
+              t.chartOptions.scales[dsYAxis] = t.getYAxisConfig(yAxisIndex, DATA_CAT_TO_AXIS_TITLE[dataCat]);
+              const {tickMin, tickMax, tickStep} = optimalTicks(yMax, yMin, 3);
+              t.chartOptions.scales[dsYAxis].min = tickMin;
+              t.chartOptions.scales[dsYAxis].max = tickMax;
+              if (t.chartOptions.scales[dsYAxis].hasOwnProperty('ticks')) {
+                t.chartOptions.scales[dsYAxis].ticks.stepSize = tickStep;
+              } else {
+                t.chartOptions.scales[dsYAxis].ticks = {stepSize: tickStep};
+              }
+              lineMetricToYAxes[dataCat] = dsYAxis;
+              yAxisIndex++;
+            }
+            vendorIndex++;
+          }
+        }
+      }
+    }
+    //console.log('Datasets Info:', t.datasetsInfo);
+    //console.log('Datasets:', datasets);
+    //console.log('Chart Options', t.chartOptions);
+
+    if (!!t.chart) {
+      //console.log('Updating All-In-One chart', t.chartOptions, t.chartLabels);
+      t.chart.data.labels = t.chartLabels;
+      t.chart.data.datasets = datasets;
+      t.chart.options = t.chartOptions;
+      t.chart.update();
+    } else {
+      const docFrag = document.createDocumentFragment();
+      const chartWrapper = app.createEl(docFrag, 'div', {class: 'chart-wrapper mw-100',});
+      const innerContainer = app.createEl(chartWrapper, 'div', {class: 'chart-container',});
+      const canvasWrapper = app.createEl(innerContainer, 'div', {class: 'canvas-wrapper'});
+      const canvas = app.createEl(canvasWrapper, 'canvas');
+      canvas.style.touchAction = "auto";
+      canvas.style.webkitUserDrag = "";
+      t.chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: t.chartLabels,
+          datasets: datasets
+        },
+        options: t.chartOptions
+      });
+      // Test
+      /*t.chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: t.chartLabels,
+          datasets: [{
+            type: 'line',
+            label: 'Dataset 3',
+            backgroundColor: '#f86c6b',
+            fill: false,
+            data: [
+              {'x': '2024-07-23T08:05:33', 'y': 142.5},
+              {'x': '2024-07-25T07:45:44', 'y': 140.8},
+              {'x': '2024-07-26T17:22:55', 'y': 145.2},
+              {'x': '2024-07-27T18:11:28', 'y': 139.6},
+              {'x': '2024-07-28T09:01:49', 'y': 136.1}
+            ],
+            xAxisID: 'x',
+            yAxisID: 'y'
+          }, {
+            type: 'bar',
+            label: 'Dataset 1',
+            backgroundColor: '#4dbd74',
+            barPercentage: 0.5,
+            data: [1],
+            xAxisID: 'x2',
+            yAxisID: 'y2',
+          }, {
+            type: 'bar',
+            label: 'Dataset 2',
+            backgroundColor: '#18D5D1',
+            barPercentage: 0.2,
+            data: [2, 4, 6, 8, 10, 12, 14],
+            xAxisID: 'x3',
+            yAxisID: 'y2',
+          },]
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              enabled: false,
+              external: chartUtils.HealthFitnessTooltip
+            }
+          },
+          scales: {
+            x: {
+              axis: 'x',
+              type: 'time',
+              display: true,
+              offset: true,
+              ticks: {
+                source: 'data'
+              },
+              time: {
+                unit: 'day'
+              },
+            },
+            x2: {
+              axis: 'x',
+              type: 'time',
+              display: false,
+              position: 'top',
+              time: {
+                unit: 'day'
+              }
+            },
+            x3: {
+              axis: 'x',
+              type: 'time',
+              display: false,
+              position: 'top',
+              time: {
+                unit: 'day'
+              }
+            },
+            y: {
+              axis: 'y',
+              display: true,
+              position: 'left',
+            },
+            y2: {
+              axis: 'y',
+              display: false,
+              position: 'right',
+              min: 0,
+              max: 1
+            }
+          },
+        }
+      });*/
+
+      t.container.appendChild(docFrag);
+    }
+
+  }
+
+  AioChart.prototype.update = function (data, startDate, endDate) {
+    const t = this;
+    t.data = data;
+    t.startDate = startDate;
+    t.endDate = endDate;
+    t.render();
+  };
+
+
+  return {
+    BORDER_DASH_SET, POINT_STYLE_SET, COLOR_SET, DATE_SELECTOR_PERIOD_OPTIONS,
+    UNIT_MINUTE, UNIT_CALORIE, UNIT_WEIGHT, UNIT_WATER, UNIT_BG, UNIT_BP,
+    parseValue, parseData, parseTime, hexToRgb, hexToRgba, changeRgbaOpacity,
+    optimalTicks, parseTimeData, extendLastTime, parseTimeChartData,
+    HealthFitnessTooltip, toWeekDay, toUsMonthDay, minToHrMin, SimpleChart, DateSelector,
+    formatJsDateTime, parseAwareizedIsoDateTime, AioChart, imageFromSVG, getVendorDisplayText,
+    dateFormatter, timeFormatter, durationFormatter
+  };
+
+}());

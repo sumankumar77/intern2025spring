@@ -1,0 +1,159 @@
+{% extends 'layout_bs5.html' %}
+{% load static %}
+
+{% block title %}About Us{% endblock %}
+
+{% block localstyles %}
+<style>
+.navbar-dark .navbar-nav .nav-link {
+  color: rgba(255, 255, 255, .95);
+}
+main.app-main {
+  padding: 0;
+}
+.image-full-width {
+  width: 100%;
+  height: auto;
+}
+.footer-theme {
+  color: #fff;
+  background-color: #fe4066;
+}
+.font-weight-bold {
+  font-weight: 600;
+}
+.footer-container > .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+.footer-container hr.teal {
+  height: 2px;
+}
+
+.section {
+  font-size: 1.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 1280px;
+  margin: 3rem auto 0 auto;
+  padding: 0 2rem;
+}
+.section-title {
+  color: #782F40;
+  font-weight: 900;
+  text-align: center
+}
+.stamped-img {
+  position: relative;
+}
+.img-stamp {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 20%
+}
+ul.list {
+  list-style-type: decimal;
+}
+.inline-img {
+  display: inline-block;
+  float: right;
+  padding: .5rem;
+}
+@media (min-width: 992px) {
+  .inline-img {
+    flex: 0 0 auto;
+    width: 50%;
+    padding: .5rem .5rem 1rem 1rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+  <div class="row flex-xl-nowrap">
+    <div class="col-12">
+      <div class="stamped-img row">
+        <div class="col-12 px-0">
+          <img src="{% static 'main/about-us-1.jpeg' %}" class="d-block image-full-width" alt="About Us">
+        </div>
+        <div class="img-stamp">
+          <img src="{% static 'main/fsu-con-transparent.png' %}" width="100%" alt="FSU CON">
+        </div>
+      </div>
+
+      <section class="section">
+        <div class="section-title col-12">
+          <h1>DIGITAL HEALTH TRANSFORMATION</h1>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="col-12">
+          <div class="col-lg-6 inline-img">
+            <img src="{% static 'main/about-us-2.jpg' %}" style="width: 100%; height: auto" alt="Digital Health Initiatives">
+          </div>
+          <p>Welcome to the Digital Health Research Team at the College of Nursing, Florida State University!
+            Our team is dedicated to pioneering advancements in connected health and telehealth, leveraging
+            cutting-edge technology to enhance clinical practice and improve patient outcomes.
+            Here are some of our key initiatives: </p>
+          <ul class="list">
+            <li>
+              <p><b>Training and Simulation Center</b>: We offer comprehensive interprofessional education
+                programs for students and clinicians, focusing on connected health and telehealth. Our center
+                is designed to advance the skill sets of participants, enabling them to effectively utilize
+                technology in clinical practice.</p>
+            </li>
+            <li><p><b>Innovation Lab</b>: Our lab provides a dynamic environment for researchers to develop
+              and pilot test new connected technology solutions. This space allows for rigorous testing and
+              refinement before these innovations are implemented in clinical or home care settings.</p>
+            </li>
+            <li><p><b>Clinical Collaborative</b>: We foster authentic relationships between researchers and
+              clinicians, facilitating the development and clinical testing of connected health solutions.
+              This collaboration ensures that our innovations are both practical and impactful in real-world
+              healthcare environments.</p>
+            </li>
+            <li><p><b>Digital Transformation of Clinical Research</b>: We are at the forefront of integrating
+              wearables and other smart devices with artificial intelligence to prevent and manage health
+              problems. Our focus is on improving the quality of life for older adults aging in place,
+              utilizing technology to support their health and well-being.</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+
+      <section class="section">
+        <div class="col-12">
+          <p> Working with industry collaborators; contacts and families; clinical and community partners;
+            and faculty, students, researchers, and clinicians, we offer: </p>
+          <ul class="list">
+            <li><p>Interprofessional collaboration across schools</p></li>
+            <li><p>Support academic researchers and industry partners in academic-industry collaboration</p></li>
+            <li><p>Interprofessional workforce training</p></li>
+            <li><p>Support and resources to researchers using smart and connected technology</p></li>
+            <li><p>Consultation on designing, developing, testing, and applying mobile and connected health
+              solutions</p></li>
+            <li><p>Student internships and independent study opportunities</p></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="col-12">
+          <p>Join us as we lead the way in digital health research, transforming the future of healthcare
+            through innovation, collaboration, and education.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block footer %}
+{% include 'footer_v2.html' %}
+{% endblock %}

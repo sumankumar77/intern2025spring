@@ -1,0 +1,622 @@
+{% extends 'layout_bs5.html' %}
+{% load static %}
+
+{% block title %}FAQ{% endblock %}
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block localstyles %}
+<style>
+.navbar-dark .navbar-nav .nav-link {
+  color: rgba(255, 255, 255, .95);
+}
+.article-summary {
+  color: #9c6600;
+  font-size: 26px;
+  font-weight: 200;
+  line-height: 1.36364em;
+  letter-spacing: 0;
+  margin: 0 40px 1.71429em 0;
+}
+.article-content .article-paragraphs > .entity-paragraphs-item {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 700px;
+}
+.entity-paragraphs-item:first-child {
+  margin-top: 0;
+}
+.entity-paragraphs-item {
+  margin: 1.714285em 0;
+}
+
+.button a:link, .button a:visited, .button:link, .button:visited {
+  color: #1077d0;
+  text-decoration: none;
+}
+a:link {
+  color: #1077d0;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.button {
+  background-color: transparent;
+  color: #1077d0;
+  display: inline-block;
+  padding: .75rem 1.25rem;
+  font-size: 1rem;
+  line-height: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: inherit;
+  text-align: center;
+  border: 3px solid #1077d0;
+  border-radius: 10rem;
+  transition: all .3s;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.button:hover, .button:focus {
+  background-color: #1077d0;
+  border-color: #1077d0;
+  color: #fff;
+  text-decoration: none;
+}
+.button--secondary:not([disabled]) {
+  background: transparent;
+  border-color: transparent;
+}
+.button--secondary:not([disabled]), .button--secondary:not([disabled]):link, .button--secondary:not([disabled]):visited {
+  color: #1077d0;
+}
+
+.accordion {
+  margin: 2.14286em 0 3em;
+}
+ul.accordion {
+  list-style-type: none;
+  padding: 0;
+}
+.accordion-controller-wrapper {
+  width: 100%;
+}
+.accordion-controller-wrapper .button {
+  font-size: 0.8em;
+  line-height: 1.60714em;
+  border: none;
+  border-radius: 0;
+  margin: 0.42857em 1.71429em 0.42857em 0;
+  padding: 0.42857em 0;
+  text-transform: uppercase;
+}
+.accordion-controller-wrapper .button:focus,
+.accordion-controller-wrapper .button:hover {
+  background-image: linear-gradient(0deg, #4c4c4c 0%, #4c4c4c 2px, transparent 2px, transparent 100%);
+  outline: none;
+  background-color: transparent !important;
+  color: #1077d0;
+}
+.accordion-button, .accordion-button:focus {
+  outline: 0!important;
+  box-shadow: none!important;
+}
+.accordion .accordion-item {
+  border: solid 1px #e5e5e5;
+  border-width: 1px 0 0;
+  margin: 0;
+  padding: 0;
+}
+.accordion .accordion-item:last-child {
+  border-bottom-width: 1px;
+}
+.accordion-button::after {
+  background-image: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+.accordion .accordion-item .accordion-header {
+  background-color: #fff;
+  color: #222;
+}
+.accordion-header {
+  background: transparent;
+  box-sizing: border-box;
+  color: #333;
+  cursor: pointer;
+  display: block;
+  font-weight: 500;
+  position: relative;
+  text-decoration: none;
+  width: 100%;
+}
+.accordion .accordion-item .accordion-header[aria-expanded="true"],
+.accordion .accordion-item .accordion-header:hover {
+  background-color: #f2f2f2;
+}
+.accordion .accordion-item .accordion-header:focus,
+.accordion .accordion-item .accordion-header:hover {
+  background-image: linear-gradient(90deg, #1077d0 0%, #1077d0 .5rem, transparent .5rem, transparent 100%);
+  text-decoration: none;
+}
+.accordion-button[aria-expanded="true"]::before {
+  -webkit-transform: rotate(0deg);
+  -ms-transform: rotate(0deg);
+  transform: rotate(0deg);
+  background-image: url(data:image/svg+xml;charset=utf-8,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%0D%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%0D%0A%09%20viewBox%3D%220%200%2010%207.5%22%20style%3D%22enable-background%3Anew%200%200%2010%207.5%3B%22%20xml%3Aspace%3D%22preserve%22%3E%0D%0A%3Cpath%20fill%3D%22%231077d0%22%20fill-opacity%3D%221%22%20stroke-width%3D%220.2%22%20stroke-linejoin%3D%22round%22%20d%3D%22M0%2C0l5%2C7.5L10%2C0H0z%22%2F%3E%0D%0A%3C%2Fsvg%3E%0D%0A);
+}
+.accordion-button::before {
+  content: '';
+}
+.accordion-button::before {
+  background-image: url(data:image/svg+xml;charset=utf-8,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%0D%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%0D%0A%09%20viewBox%3D%220%200%2010%207.5%22%20style%3D%22enable-background%3Anew%200%200%2010%207.5%3B%22%20xml%3Aspace%3D%22preserve%22%3E%0D%0A%3Cpath%20fill%3D%22%234c4c4c%22%20fill-opacity%3D%221%22%20stroke-width%3D%220.2%22%20stroke-linejoin%3D%22round%22%20d%3D%22M0%2C0l5%2C7.5L10%2C0H0z%22%2F%3E%0D%0A%3C%2Fsvg%3E%0D%0A);
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  background-size: contain;
+  height: .75rem;
+  width: .75rem;
+  left: 1.25rem;
+  position: absolute;
+  top: 1.25rem;
+  -webkit-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  transform: rotate(-90deg);
+  -moz-transform-origin: center;
+  -ms-transform-origin: center;
+  -webkit-transform-origin: center;
+  transform-origin: center;
+  -moz-transition: -moz-transform 150ms ease-in-out;
+  -o-transition: -o-transform 150ms ease-in-out;
+  -webkit-transition: -webkit-transform 150ms ease-in-out;
+  transition: transform 150ms ease-in-out;
+}
+.accordion-button:hover::before {
+  background-image: url(data:image/svg+xml;charset=utf-8,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%0D%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%0D%0A%09%20viewBox%3D%220%200%2010%207.5%22%20style%3D%22enable-background%3Anew%200%200%2010%207.5%3B%22%20xml%3Aspace%3D%22preserve%22%3E%0D%0A%3Cpath%20fill%3D%22%231077d0%22%20fill-opacity%3D%221%22%20stroke-width%3D%220.2%22%20stroke-linejoin%3D%22round%22%20d%3D%22M0%2C0l5%2C7.5L10%2C0H0z%22%2F%3E%0D%0A%3C%2Fsvg%3E%0D%0A);
+}
+
+.accordion-item .accordion-button {
+  padding: 1rem .5rem 1rem 2.5rem;
+  border: 0;
+  line-height: 1rem;
+  background-color: transparent;
+  font-weight: 700;
+  margin-right: 0.85714em;
+}
+.accordion-collapse {
+  background: #f2f2f2;
+  position: relative;
+  transition: max-height 150ms ease-in;
+  z-index: 2;
+}
+.accordion-body {
+  padding: 1rem;
+  margin-left: 1.25rem;
+}
+
+.footer-theme {
+  color: #fff;
+  background-color: #fe4066;
+}
+.font-weight-bold {
+  font-weight: 600;
+}
+.footer-container > .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+.footer-container hr.teal {
+  height: 2px;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="main" style="overflow-y: auto">
+  <div class="container-fluid mt-navbar">
+    <div class="animated fadeIn pt-4">
+      <div class="row">
+        <div class="col-md-12">
+          <article id="article" class="clearfix">
+            <div class="article-summary">
+              Below you'll find answers to our frequently asked questions.
+            </div>
+
+            <div class="article-content">
+
+              <div class="article-paragraphs">
+                <!--<div class="entity entity-paragraphs-item paragraphs-item-text">
+                    <div class="content">
+                        <div class="paragraphs-item-body">
+                            <p></p>
+                        </div>
+                    </div>
+                </div>-->
+
+                <div class="entity entity-paragraphs-item paragraphs-item-accordion-tabs">
+
+                  <ul id="faq-accordion" class="accordion">
+                    <div class="accordion-controller-wrapper">
+                      <button data-accordion-controler="expand" tabindex="0"
+                              class="button button--secondary">expand all
+                      </button>
+                      <button data-accordion-controler="collapse" tabindex="0"
+                              class="button button--secondary">collapse all
+                      </button>
+                    </div>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_0">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_0" aria-expanded="false" aria-controls="collapse_0">
+                          How do I sign up?
+                        </button>
+                      </div>
+                      <div id="collapse_0" class="accordion-collapse collapse" aria-labelledby="heading_0" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>There are two ways that you can sign up for our services:</p>
+
+                          <p>(1) You can <a href="{% url 'auth' %}?a=signup">create an
+                            account</a> with a valid email. A confirmation email will be
+                            sent to your email and activation is required.</p>
+
+                          <p>(2) You can also quickly create an account and get access to the
+                            platform using your Google and Facebook account.</p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_1">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_1" aria-expanded="false" aria-controls="collapse_1">
+                          Why can’t I sign in?
+                        </button>
+                      </div>
+                      <div id="collapse_1" class="accordion-collapse collapse" aria-labelledby="heading_1" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>Make sure that:</p>
+
+                          <ul>
+                            <li>
+                              You've activated your account through the activation email
+                              sent from us.
+                            </li>
+                            <li>
+                              You're trying to sign in with the right credentials,
+                              i.e. your username and password. Your username and password
+                              are both case-sensitive.
+                            </li>
+                          </ul>
+
+                          <p>If you are still experiencing difficulty in singing in, you can:</p>
+
+                          <p>(1) <a href="{% url 'auth' %}?a=resend">Resend an activation email</a>
+                            if you haven't activated your account yet.</p>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=wCu4Xg44WM8"
+                                role="button">Watch our video on how to resend an activation
+                            email.<span></span></a></p>
+
+                          <p>(2) <a href="{% url 'auth' %}?a=recover">Recover your password</a>
+                            if you can't remember your password.</p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_2">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_2" aria-expanded="false" aria-controls="collapse_2">
+                          Can I merge my account with social login?
+                        </button>
+                      </div>
+                      <div id="collapse_2" class="accordion-collapse collapse" aria-labelledby="heading_2" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>You cannot merge your registered account with social login in,
+                            but you can connect your registered account with social login.</p>
+
+                          <p>(1) If you've already have an registered account, you can follow
+                            the below video to connect with your social login.</p>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=fAe0jA4V2N8"
+                                role="button">Watch our video on how to connect account with
+                            social login.<span></span></a></p>
+
+                          <p>(2) <a href="{% url 'auth' %}?a=recover">Recover your password</a>
+                            if you can't remember your password.</p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_3">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_3" aria-expanded="false" aria-controls="collapse_3">
+                          How do I connect my devices/accounts?
+                        </button>
+                      </div>
+                      <div id="collapse_3" class="accordion-collapse collapse" aria-labelledby="heading_3" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>We provide a variety of options to connect your smart devices so
+                            that you can aggregate your data in one place and potentially share
+                            your data with your family members, health professionals, or friends.</p>
+
+                          <p>To connect your devices/accounts, check out the following video:</p>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=SmVCAqxUedk"
+                                role="button">Find out how to connect your devices/accounts.<span></span></a></p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_4">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_4" aria-expanded="false" aria-controls="collapse_4">
+                          How do I disconnect my devices/accounts?
+                        </button>
+                      </div>
+                      <div id="collapse_4" class="accordion-collapse collapse" aria-labelledby="heading_4" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>You can easily disconnect your devices/accounts from this platform.</p>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=SmVCAqxUedk"
+                                role="button">Find out how to disconnect your devices/accounts.<span></span></a></p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_5">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_5" aria-expanded="false" aria-controls="collapse_5">
+                          Can I use the platform if I don't have a smart device or my device is not supported?
+                        </button>
+                      </div>
+                      <div id="collapse_5" class="accordion-collapse collapse" aria-labelledby="heading_5" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>It depends. If you want to share your weight, blood glucose, blood pressure,
+                            insulin, or SpO2 data, then you can log your data manually.</p>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=qEWO7qBit_I"
+                                role="button">Find out how to log your data manually.<span></span></a></p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_6">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_6" aria-expanded="false" aria-controls="collapse_6">
+                          How do I share my data with another user?
+                        </button>
+                      </div>
+                      <div id="collapse_6" class="accordion-collapse collapse" aria-labelledby="heading_6" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>You can share your data with another user by establishing a
+                            one-way connection with another user.</p>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=uVL2nEYIL1g"
+                                role="button">Find out how to share my data.<span></span></a></p>
+
+                          <p>The one-way connection only allows you to share your data with
+                            another user and does not allow you to view the data of that user.</p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_7">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_7" aria-expanded="false" aria-controls="collapse_7">
+                          How do I request data sharing from another user?
+                        </button>
+                      </div>
+                      <div id="collapse_7" class="accordion-collapse collapse" aria-labelledby="heading_7" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>You can send a sharing request to another user. Once the user accepts
+                            the request, you'll be able to view that user's data.</p>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=uVL2nEYIL1g"
+                                role="button">Find out how to request data sharing.<span></span></a></p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_8">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_8" aria-expanded="false" aria-controls="collapse_8">
+                          How do I configure my dashboard?
+                        </button>
+                      </div>
+                      <div id="collapse_8" class="accordion-collapse collapse" aria-labelledby="heading_8" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>Your dashboard is configurable according to your need. Watch the
+                            following video and find out how.</p>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=cdVnzF2rFoU"
+                                role="button">Find out how to configure dashboard.<span></span></a></p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_9">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_9" aria-expanded="false" aria-controls="collapse_9">
+                          How do I set goals on my dashboard?
+                        </button>
+                      </div>
+                      <div id="collapse_9" class="accordion-collapse collapse" aria-labelledby="heading_9" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>You can set 2 kinds of goals on your dashboard -- panel goals
+                            and general goals.</p>
+
+                          <ul>
+                            <li>
+                              You can set panel goals in each individual panel that
+                              display a measurement of your activity/health on your
+                              dashboard.
+                            </li>
+                            <li>
+                              General goals can be set in the goal panel to facilitate
+                              your personal need.
+                            </li>
+                          </ul>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=Un_HjCw9EVw"
+                                role="button">Find out how to set goals.<span></span></a></p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_10">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_10" aria-expanded="false" aria-controls="collapse_10">
+                          How do I create and manage a group?
+                        </button>
+                      </div>
+                      <div id="collapse_10" class="accordion-collapse collapse" aria-labelledby="heading_10" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>You can create a group and include a group of users in your
+                            contact list for convenience.</p>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=W1TZz9NVDCE"
+                                role="button">Find out how to create and manage a group.<span></span></a></p>
+
+                          <p>You can also share health information with your group by posting
+                            it in the group.</p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_11">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_11" aria-expanded="false" aria-controls="collapse_11">
+                          What is a project group?
+                        </button>
+                      </div>
+                      <div id="collapse_11" class="accordion-collapse collapse" aria-labelledby="heading_11" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>A project group is a special group that helps facilitate a
+                            research study.</p>
+
+                          <p>Only users with project manager status can create project groups.
+                            If you're considering using our services for your project, please
+                            <a href="{% url 'contact_us' %}">contact us</a> for more
+                            information.</p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_12">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_12" aria-expanded="false" aria-controls="collapse_12">
+                          How do I create and manage a group for a project or a research study?
+                        </button>
+                      </div>
+                      <div id="collapse_12" class="accordion-collapse collapse" aria-labelledby="heading_12" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>A project group is a special group with extra functions to
+                            facilitate a project or a research study. Normal users are not
+                            allowed to create a project group.
+                            <a href="{% url 'contact_us' %}">Contact us</a> if you
+                            want to upgrade your account. In a project group, you'll be
+                            able to:</p>
+
+                          <ul>
+                            <li>
+                              Create a human subject ID to identify your users in the group.
+                            </li>
+                            <li>
+                              Subscribe to connection alerts so that you'll be notified if
+                              a user in your group is not active or not valid during your
+                              study.
+                            </li>
+                            <li>
+                              Subscribe to user reports on a specified basis so that you'll
+                              get a summary of your users in a group in the past week/month.
+                            </li>
+                            <li>
+                              Request reports of specified user data in a specified period.
+                            </li>
+                          </ul>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=aSToLmGRSP8"
+                                role="button">Find out how to create and manage a group for a
+                            project.<span></span></a></p>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="accordion-item">
+                      <div class="accordion-header" id="heading_13">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse_13" aria-expanded="false" aria-controls="collapse_13">
+                          How do I join a group?
+                        </button>
+                      </div>
+                      <div id="collapse_13" class="accordion-collapse collapse" aria-labelledby="heading_13" data-bs-parent="#faq-accordion">
+                        <div class="accordion-body">
+                          <p>Joining a group provides a mechanism to avoid establishing
+                            a connection between a project manager and a human subject. To join
+                            a group:</p>
+
+                          <ul>
+                            <li>
+                              The group must be defined as a project group.
+                            </li>
+                            <li>
+                              You must know the group name and the project manager who
+                              created the group.
+                            </li>
+                            <li>
+                              A human subject ID that is distributed by the project manager.
+                            </li>
+                          </ul>
+
+                          <p><a class="button" href="https://www.youtube.com/watch?v=UMxyaOms_FY"
+                                role="button">Find out how to join a group.<span></span></a></p>
+
+                          <p>The human subject ID field is required, unique in a group. A user
+                            who knows the group name and group manager can join the group with a
+                            random human subject ID. It is the group manager's responsibility to
+                            determine from the human subject ID if a user has been invited in a
+                            study.</p>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+
+                </div>
+              </div>
+            </div>
+
+          </article>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+  {% include 'footer_v2.html' %}
+{% endblock %}
+
+{% block localscripts %}
+<script type="text/javascript">
+(function () {
+  document.querySelector('button[data-accordion-controler="expand"]').addEventListener('click', (e) => {
+    const accordion = e.target.closest('.accordion');
+    accordion.querySelectorAll('.accordion-item .accordion-button').forEach((el) => {
+      el.classList.remove('collapsed');
+      el.setAttribute('aria-expanded', 'true');
+    });
+    accordion.querySelectorAll('.accordion-item .accordion-collapse').forEach((el) => {
+      el.classList.add('show');
+    });
+  });
+
+  document.querySelector('button[data-accordion-controler="collapse"]').addEventListener('click', (e) => {
+    const accordion = e.target.closest('.accordion');
+    accordion.querySelectorAll('.accordion-item .accordion-button').forEach((el) => {
+      el.classList.add('collapsed');
+      el.setAttribute('aria-expanded', 'false');
+    });
+    accordion.querySelectorAll('.accordion-item .accordion-collapse').forEach((el) => {
+      el.classList.remove('show');
+    });
+  });
+})();
+</script>
+{% endblock %}

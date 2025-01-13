@@ -1,0 +1,22 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+
+{% block body_class %}app-font navbar-fixed navbar-md{% endblock %}
+
+{% block content_class %}block-content{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-navbar home">
+    <div id="notfound">
+		<div class="notfound">
+			<div class="notfound-content">
+				<h3>Oops! Page not found</h3>
+				<h1><span>{{number1}}</span><span>{{number2}}</span><span>{{number3}}</span></h1>
+			</div>
+			<h2>{{msg}}</h2>
+		</div>
+	</div>
+</div>
+{% endblock %}
+

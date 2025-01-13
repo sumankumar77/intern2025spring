@@ -1,0 +1,23 @@
+{% extends 'layout.html' %}
+{% load i18n %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+{% block title %}Inbox{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <div class="content">
+        <div class="inbox-body" id="inbox-body">
+            {% include 'msgs/messages_options.html' %}
+            {% include 'msgs/messages.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block localscripts %}
+{% include 'msgs/messages_scripts.html' %}
+{% endblock %}

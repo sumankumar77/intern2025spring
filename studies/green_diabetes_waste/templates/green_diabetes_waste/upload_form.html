@@ -1,0 +1,736 @@
+{% extends 'green_diabetes_waste/base.html' %}
+{% load i18n %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_tags %}
+
+{% block title %}{{ form_title|title }}{% endblock %}
+
+{% block localstyles %}
+<style>
+:root {
+  --doc-height: 100%;
+}
+/*  --- smart form css starts --- */
+.form-check-input[type=radio],
+input.form-check-box[type=checkbox] {
+  visibility: visible!important;
+}
+.form-check-input, input.form-check-box {
+  width: 1em;
+  height: 1em;
+  margin-top: .3em;
+  vertical-align: top;
+  background-repeat: no-repeat;
+  background-position: 50%;
+  background-size: contain;
+  border: 1px solid rgba(0,0,0,.25);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  print-color-adjust: exact;
+}
+.form-check-input {
+  /*position: relative!important;*/
+  width: 1.125rem;
+  height: 1.125rem;
+  background-color: #fff;
+  border: .125rem solid rgba(0,0,0,.25);
+}
+.form-check-input[type=radio] {
+  /*visibility: visible!important;*/
+  border-radius: 50%;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: .125em;
+  margin-right: 4px;
+  top: 0.35rem;
+}
+.form-check-input[type=radio]:checked {
+  background-image: none;
+  background-color: #fff;
+}
+.form-check-input[type=radio]:before {
+  width: 1rem;
+  height: 1rem;
+}
+.form-check-input:before {
+  content: "";
+  position: absolute;
+  box-shadow: 0 0 0 13px transparent;
+  border-radius: 50%;
+  width: .875rem;
+  height: .875rem;
+  background-color: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0);
+}
+.form-check-input:checked:before {
+  opacity: .16;
+}
+.form-check-input[type=radio]:after {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  z-index: 1;
+  display: block;
+  border-radius: 50%;
+  background-color: #fff;
+}
+.form-check-input[type=radio]:checked:after {
+  border-radius: 50%;
+  width: .625rem;
+  height: .625rem;
+  border-color: #3b71ca;
+  background-color: #3b71ca;
+  transition: border-color;
+  transform: translate(-50%,-50%);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+input.form-check-box {
+  position: relative;
+}
+input.form-check-box:checked {
+  color: #fff;
+  border-color: #007bff;
+  background-color: #007bff;
+}
+input.form-check-box::after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  content: "";
+  background: 50% / 50% 50% no-repeat;
+}
+input.form-check-box:checked:after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3e%3cpath fill='%23fff' d='M6.564.75l-3.59 3.612-1.538-1.55L0 4.26l2.974 2.99L8 2.193z'/%3e%3c/svg%3e");
+}
+.form-check-input.form-check-input-sm[type=radio] {
+  width: 1rem;
+  height: 1rem;
+  /*margin-top: .125em;
+  margin-right: 4px;*/
+  top: 0.475rem;
+}
+.form-check-input.form-check-input-sm[type=radio]:before {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+.form-check-input.form-check-input-sm[type=radio]:after {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+.form-check-input.form-check-input-sm[type=radio]:checked:after {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+/*  --- smart form css ends --- */
+/* question pagination starts */
+.q-container {
+  position: relative;
+  overflow-x: hidden;
+}
+.q-page {
+  display: none;
+  transition: all .25s ease;
+}
+.q-page.active {
+  display: block;
+}
+.q-page.past {
+  transform: translateX(-100%);
+  -webkit-transform: translateX(-100%);
+}
+.q-page.future {
+  transform: translateX(100%);
+  -webkit-transform: translateX(100%);
+}
+/* question pagination ends */
+
+.max-width-xl {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto
+}
+.form-header-group {
+  background-color: #fff;
+  margin: 0;
+  padding: 24px 0;
+  text-align: center
+}
+.form-header-text {
+  color: #2E7D32;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+.form-sub-header-text {
+  color: #2e7d32;
+  font-size: 1.35rem;
+  font-weight: 400;
+}
+@media (max-width: 576px) {
+  .form-header-text{
+    font-size: 1.25rem;
+  }
+  .form-sub-header-text {
+    display: none
+  }
+}
+.form-info {
+  padding: 0 36px;
+  font-size: .8125rem;
+  font-weight: 700;
+  color: #0b5ed7;
+}
+.form-group {
+  margin: 0;
+  padding: 12px 36px;
+  clear: both;
+  display: block;
+  position: relative;
+}
+.form-label {
+  display: block;
+  color: #004d40;
+  text-align: left;
+  font-family: Helvetica, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  word-break: break-word;
+}
+.form-check-label, ul.form-check-box > li > label {
+  color: #004d40;
+  font-size: 1.2rem;
+  font-weight: 400;
+  word-break: break-word;
+}
+ul.form-check-box > li > label {
+  margin-bottom: 1.5rem;
+}
+.mw200px {
+  max-width: 200px
+}
+.mw25 {
+  max-width: 25%
+}
+.mw50 {
+  max-width: 50%
+}
+.mw75 {
+  max-width: 75%
+}
+input.form-check-box[type=checkbox] {
+  margin-top: 0.15rem;
+  margin-right: .25rem;
+  border: .125rem solid rgba(0,0,0,.25);
+}
+.form-check-input.form-check-input-sm[type=radio] {
+  top: 0.19rem!important;
+  margin-left: 0;
+  left: 0;
+}
+.form-group > div {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.form-check {
+  position: relative;
+  width: 100%;
+  min-height: 1px;
+  padding-right: .625rem;
+  padding-left: 1.375rem;
+}
+.form-check > .form-check-input:hover,
+.form-check > .form-check-label:hover,
+ul.form-check-box > li > label:hover,
+ul.form-check-box > li > label > input:hover {
+  cursor: pointer;
+}
+/* the order matters */
+@media (min-width: 576px) {
+  .form-check {
+    -ms-flex: 0 0 50%;
+    flex: 0 0 50%;
+    max-width: 50%
+  }
+}
+@media (min-width: 768px) {
+  .form-check {
+    -ms-flex: 0 0 33.333333%;
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%
+  }
+}
+@media (min-width: 1280px) {
+  .form-check {
+    -ms-flex: 0 0 25%;
+    flex: 0 0 25%;
+    max-width: 25%
+  }
+}
+.main {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: var(--doc-height);
+}
+.content {
+  min-height: 100%;
+  width: 100%;
+}
+.md-btn {
+  display: inline-block;
+  color: #4f4f4f;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  background-color: transparent;
+  border-radius: 0.25rem;
+  -webkit-transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, -webkit-box-shadow .15s ease-in-out;
+  transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out, -webkit-box-shadow .15s ease-in-out;
+  text-transform: uppercase;
+  vertical-align: bottom;
+  border: 0;
+  -webkit-box-shadow: 0 2px 5px 0 rgb(0 0 0 / 20%), 0 2px 10px 0 rgb(0 0 0 / 10%);
+  box-shadow: 0 2px 5px 0 rgb(0 0 0 / 20%), 0 2px 10px 0 rgb(0 0 0 / 10%);
+  font-weight: 500;
+  padding: 0.625rem 1.5rem 0.5rem;
+  font-size: .75rem;
+  line-height: 1.5;
+}
+.md-btn-primary {
+  color: #fff;
+  background-color: #1266f1;
+}
+.md-btn-primary.focus, .md-btn-primary:focus, .md-btn-primary:hover {
+  color: #fff;
+  background-color: #0c56d0;
+}
+.btn-row {
+  padding: 12px 36px;
+  display: none;
+}
+.md-btn.disabled, .md-btn:disabled {
+  color: #000;
+  pointer-events: none;
+  background-color: #9fa6b2;
+  border-color: #9fa6b2;
+  opacity: 0.65;
+  box-shadow: none;
+}
+.q-page.active > .btn-row {
+  display: block;
+}
+.btn-next, .btn-submit {
+  float: right;
+}
+.footer-img {
+  max-width: 100%;
+  max-height: 100%;
+}
+.theme-fsu {
+  background-color: #782F40;
+  color: #ceb888;
+  font-weight: 700
+}
+.page-footer {
+  margin-top: auto;
+}
+.footer-bar {
+  padding-right: .625rem;
+  padding-left: .625rem;
+}
+.footer-copyright {
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+#review .text-uppercase {
+  font-size: 0.8125rem;
+}
+.form-set {
+  position: relative;
+  padding: 12px;
+}
+.upload-field {
+  width: 80%;
+  text-align: center;
+  margin: auto;
+}
+.drag-n-drop-zone {
+  margin: auto;
+  background: #5cb85c;
+  width: 80%;
+  height: 50%;
+  border: 3px dashed white;
+  text-align: center;
+  color: white;
+  /*z-index: 20;*/
+  transition: all 0.3s ease-out;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 0 0.25em 0 rgba(0, 0, 0, 0.25);
+  padding: 15px 0;
+}
+.material-symbols-outlined.mso-lg {
+  font-size: 48px;
+}
+.material-symbols-outlined.mso-sm {
+  font-size: 16px;
+}
+.upload-file-label {
+  width: 168px;
+  border-radius: 5px;
+  cursor: pointer;
+  font: 700 14px/40px "Roboto", sans-serif;
+  border: 1px solid #99a2a8;
+  text-align: center;
+  transition: all 300ms linear 0s;
+  color: #5f6771;
+}
+.material-symbols-outlined {
+  vertical-align: middle;
+  padding-bottom: 6px;
+}
+.upload-file-label:hover {
+  background-color: #5cb85c;
+}
+.upload-file-input {
+  display: none;
+}
+.drag-n-drop-zone.highlight {
+  border-color: #782F40;
+}
+.file-summary {
+  max-width: 600px;
+  margin: auto;
+}
+ul.file-summary > li > a {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  -ms-word-break: break-all;
+  /* This is the dangerous one in WebKit, as it breaks things wherever */
+  word-break: break-all;
+  /* Instead use this non-standard one: */
+  word-break: break-word;
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+.delete-file-input {
+  padding: 3px;
+  margin-left: 3px;
+  color: #dc1a65;
+}
+.delete-file-input:hover {
+  cursor: pointer;
+  color: #dc3545;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main">
+  <div class="content">
+    <div class="max-width-xl">
+      <div class="col">
+        <div class="form-input-wide">
+          <div class="form-header-group">
+            <div class="form-header-text">
+              {{ form_title|title }}
+            </div>
+            <div class="form-sub-header-text">
+              Quantifying the Amount of Environmental Waste Associated with Devices and Technology
+            </div>
+          </div>
+          <div class="form-info">
+            <div class="d-inline">
+              <div class="d-inline">Today:</div>
+              <div id="today" class="d-inline">{% now 'm/d/Y' %}</div>
+            </div>
+            <div class="d-inline pl-2">
+              <div class="d-inline">Request Date:</div>
+              <div id="form-date" class="d-inline">{{ token.date|date:'m/d/Y' }}</div>
+            </div>
+          </div>
+        </div>
+        {% if formset %}
+        <form id="the-form" class="smart-form" method="post" autocomplete="off" novalidate>
+          {% csrf_token %}
+
+          {% for hidden_field in form.hidden_fields %}
+            {{ hidden_field }}
+          {% endfor %}
+
+          <div class="q-container">
+            <div class="q-page active">
+              <div class="form-group">
+                <label class="form-label">
+                  Upload up to 5 photos of items your threw away.
+                </label>
+                {{ formset.management_form }}
+                {% for form in formset %}
+                  <div class="form-set{% if forloop.counter0 != 0 %} d-none{% endif %}">
+                    <div class="field-wrapper upload-field">
+                      <div class="drag-n-drop-zone">
+                        <span class="material-symbols-outlined mso-lg">cloud_upload</span>
+                        <div>Drag and drop your file here</div>
+                      </div>
+                      <span>OR</span>
+                      <div class="selectFile">
+                        <!--<label for="file">Choose file</label>-->
+                        <!--<input type="file" name="files[]" id="file">-->
+                        <label class="upload-file-label" for="{{ form.image.auto_id }}">
+                          <span class="material-symbols-outlined">upload_file</span>Choose file
+                        </label>
+                        {% render_field form.image class+="upload-file-input" %}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+
+                <ul class="file-summary"></ul>
+              </div>
+
+              <div class="btn-row">
+                <button type="button" class="md-btn md-btn-primary invisible">Button</button>
+                <button type="submit" class="md-btn md-btn-primary btn-submit">Submit</button>
+              </div>
+            </div>
+
+            <div class="q-page q-page-final future">
+              <div class="form-group">
+                <div class="form-label">Thank you for uploading your photos!</div>
+              </div>
+            </div>
+          </div>
+        </form>
+        {% else %}
+          <div class="q-container">
+            <div class="q-page active">
+              <div class="form-group">
+                <label class="form-label">
+                  You have already uploaded photos for this request.
+                </label>
+                <label class="form-label">
+                  Thank you again, and we might send you more requests to upload your photos in future.
+                </label>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% include 'green_diabetes_waste/footer.html' %}
+</div>
+{% endblock %}
+
+{% block localscripts %}
+{{ form.media }}
+<script type="text/javascript" src="{% static 'js/study-8974a864067.min.js' %}" class="view-script"></script>
+<script>
+//(function() {
+
+  MAX_IMAGE_SIZE = 5242880; // 5MB
+
+  const documentHeight = () => {
+   const doc = document.documentElement
+   doc.style.setProperty('--doc-height', `${window.innerHeight}px`)
+  };
+  window.addEventListener('resize', documentHeight);
+  documentHeight();
+
+  String.prototype.splice = function (idx, rem, str) {
+    return this.slice(0, idx) + str + this.slice(idx + Math.abs(rem));
+  };
+
+  const formCb = function (json) {
+    const curPage = document.querySelector('form .q-page.active');
+    const newPage = document.querySelector('.q-page.q-page-final');
+    classList(curPage).remove('active').add('past');
+    newPage.classList.add('active');
+    setTimeout(function () {
+      newPage.classList.remove('future');
+    }, 10);
+  }
+
+  const theForm = new SmartForm(document.getElementById('the-form'), {
+    'ajax': true,
+    'cb': formCb,
+    'animateResult': false,
+    'onNoChange': formCb,
+    'doReview': false,
+  });
+
+  // form date setup
+  const formDate = document.getElementById('form-date');
+  const today = document.getElementById('today');
+  if (formDate.innerHTML !== today.innerHTML) {
+    formDate.classList.add('text-danger');
+  }
+
+  // Drag and drop
+  function preventDefaults (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  const dropAreas = document.querySelectorAll('.drag-n-drop-zone');
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropAreas.forEach(dropArea => {
+      dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+  });
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropAreas.forEach(dropArea => {
+      dropArea.addEventListener(eventName, highlight, false);
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropAreas.forEach(dropArea => {
+      dropArea.addEventListener(eventName, unhighlight, false);
+    });
+  });
+
+  function highlight(e) {
+    e.target.classList.add('highlight')
+  }
+
+  function unhighlight(e) {
+    e.target.classList.remove('highlight')
+  }
+
+  function isValidImageFile(file) {
+    const validImageTypes = ['image/gif', 'image/jpeg', 'image/png'];
+    return validImageTypes.includes(file['type']);
+  }
+
+  function setInputs(form) {
+    const inputs = [...form.querySelectorAll('input.upload-file-input')];
+    let showed = false;
+    for (let i = 0; i < inputs.length; i++) {
+      if (inputs[i].files.length === 0 && !showed) {
+        inputs[i].closest('.form-set').classList.remove('d-none');
+        showed = true;
+      } else {
+        inputs[i].closest('.form-set').classList.add('d-none');
+      }
+    }
+  }
+
+  function afterFileInput(form) {
+    const inputs = [...form.querySelectorAll('input.upload-file-input')];
+    const summary = form.querySelector('.file-summary');
+    summary.innerHTML = '<li>File Added:</li>' +
+      inputs.filter(inp => inp.files.length > 0).map(inp =>
+        '<li data-ifile=' + inp.name + '><a href="#"><span class="material-symbols-outlined mso-sm">attach_file</span>' +
+        inp.value + '</a><div class="d-inline delete-file-input">×</div></li>').join('');
+    setInputs(form);
+
+    // addEventListener to li x
+    summary.querySelectorAll('li .delete-file-input').forEach(e => {
+      e.onclick = function () {
+        const li = e.closest('li');
+        const input = document.querySelector('input[name="' + li.getAttribute('data-ifile') + '"]');
+        if (!!input) {
+          input.value = '';
+          li.remove();
+          setInputs(form);
+        }
+      };
+    });
+  }
+
+  function nextValidImageIndex(files, curIdx) {
+    let i = curIdx + 1;
+    while (i < files.length && !isValidImageFile(files[i])) {
+      i++;
+    }
+    return i;
+  }
+
+  async function handleDrop(e) {
+    let dt = e.dataTransfer;
+    let files = [...dt.files];
+    const form = e.target.closest('form');
+    const inputs = [...form.querySelectorAll('input.upload-file-input')];
+    if (files.length > 0) {
+      let i = nextValidImageIndex(files, -1);
+      for (let j = 0; j < inputs.length; j++) {
+        if (i < files.length && inputs[j].files.length === 0) {
+          const file = await compressImage(files[i], {});
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          inputs[j].files = dataTransfer.files;
+          i = nextValidImageIndex(files, i);
+        }
+      }
+    }
+    afterFileInput(form);
+  }
+
+  dropAreas.forEach(dropArea => {
+    dropArea.addEventListener('drop', handleDrop, false);
+  });
+
+  // Choose file
+  document.querySelectorAll('input.upload-file-input').forEach(e => {
+    e.onchange = async function () {
+      const form = e.closest('form');
+      const file = await compressImage(e.files[0], {});
+      console.log('after compression', file.size);
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      e.files = dataTransfer.files;
+      afterFileInput(form);
+    };
+  })
+
+  const compressImage = async (file, {quality = 1, type = file.type}) => {
+    //console.log('compressImage', quality, type);
+    if (file.size > MAX_IMAGE_SIZE) {
+      quality = MAX_IMAGE_SIZE/file.size;
+      // console.log('compressImage', quality, file.size);
+      // Get as image data
+      const imageBitmap = await createImageBitmap(file);
+
+      // Draw to canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = imageBitmap.width;
+      canvas.height = imageBitmap.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(imageBitmap, 0, 0);
+
+      // Turn into Blob
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, type, quality)
+      );
+
+      // Turn Blob into File
+      return new File([blob], file.name, {type: blob.type,});
+    } else {
+      return file;
+    }
+  };
+
+
+//}());
+</script>
+{% endblock %}
