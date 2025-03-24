@@ -78,6 +78,8 @@ INSTALLED_APPS = [
     'apps.msgs',
     'apps.utils',
     'apps.session_security',
+    'social_django',
+    'apps.dashboard', #for dashboard
 ] + config('INSTALLED_APPS_EXTRA', cast=Csv(), default='')
 
 MIDDLEWARE = [
@@ -92,6 +94,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'chealth.middleware.GlobalLoginRequiredMiddleware',
     'chealth.middleware.MySocialAuthExceptionMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
     'axes.middleware.AxesMiddleware'
 ]
 
@@ -100,7 +103,9 @@ ROOT_URLCONF = 'chealth.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates/chealth')],
+        'DIRS': [os.path.join(BASE_DIR, 'templates/chealth'),
+                 os.path.join(BASE_DIR, 'studies/green_diabetes_waste/templates'),
+                 ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -161,6 +166,7 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTHENTICATION_BACKENDS = [
     'axes.backends.AxesBackend',
     'apps.user.backends.EmailOrUsernameModelBackend',
+    'social_core.backends.google.GoogleOAuth2',
 ]
 
 
@@ -294,8 +300,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'user.CustomUser'
 LOGIN_URL = 'auth'
-LOGIN_REDIRECT_URL = 'ch:home'
-LOGOUT_REDIRECT_URL = 'home'
+#for dashboard
+# LOGIN_REDIRECT_URL = 'ch:home'
+# LOGOUT_REDIRECT_URL = 'home'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'
 ADMIN_USERNAME = config('ADMIN_USERNAME', default='overl0ader')
 
 # email service
@@ -544,3 +553,6 @@ GOOGLE_APPLICATION_CREDENTIALS = config('GOOGLE_APPLICATION_CREDENTIALS', defaul
 
 # s_nursing_faculty snowflake private key passphrase
 S_NF_PASSPHRASE = config('S_NF_PASSPHRASE', default='')
+
+
+

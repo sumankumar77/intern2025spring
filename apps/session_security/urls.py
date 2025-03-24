@@ -1,3 +1,4 @@
+
 """
 One url meant to be used by JavaScript.
 
@@ -15,9 +16,9 @@ ie::
 
 """
 try:
-    from django.conf.urls import url
+    from django.urls import re_path as url
 except ImportError:
-    from django.conf.urls.defaults import url
+    from django.urls import path, re_path
 
 from chealth.middleware import session_security_exempt
 from .views import PingView, PingViewV2

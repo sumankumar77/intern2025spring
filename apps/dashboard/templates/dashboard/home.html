@@ -1,0 +1,562 @@
+{% extends "dashboard/layout.html" %}
+{% load static %}
+
+{% block title %}Dashboard - Digital Health{% endblock %}
+
+{% block main %}
+<div class="container-fluid mt-4 d-flex">
+    <!-- Main Content -->
+    <div class="content-container flex-grow-1 p-4">
+        <h2 class="text-center">Welcome, {{ user.username|default:"Guest" }}!</h2>
+        <p class="text-center text-muted">Your personalized dashboard overview</p>
+
+        <!-- Chat Container -->
+        <div class="card p-4 shadow-lg">
+            <div id="chat-box" class="chat-box p-4">
+                <p class="text-muted text-center">Start a conversation...</p>
+            </div>
+
+            <!-- Chat Input Group -->
+            <div class="input-group mt-3 chat-input-container">
+
+                <!-- Plus Button for File Upload -->
+                <button id="plus-btn" class="btn plus-btn">
+                    <i class="fa fa-plus"></i>
+                </button>
+
+                <!-- User Input Field -->
+                <input type="text" id="user-input" class="form-control chat-input" placeholder="Type your message..." autofocus>
+
+                <!-- Microphone Button -->
+                <button id="mic-btn" class="btn mic-btn">
+                    <i id="mic-icon" class="fa fa-microphone"></i>
+                </button>
+
+                <!-- Send Button -->
+                <button class="btn send-btn text-white" onclick="sendMessage()">Send</button>
+            </div>
+
+            <!-- File Upload Popup (Initially Hidden) -->
+            <div id="upload-popup" class="upload-popup">
+                <input type="file" id="file-input" name="file" accept=".xlsx,.xls,.docx" class="form-control mb-2">
+                <button type="button" id="upload-btn" class="btn btn-primary">Upload</button>
+            </div>
+
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block localscripts %}
+
+<script>
+
+
+function sendMessage() {
+    const chatBox = document.getElementById("chat-box");
+    const userInput = document.getElementById("user-input");
+    const message = userInput.value.trim();
+
+    if (message === "") return;
+
+    // Append user message
+    const userMsg = document.createElement("div");
+    userMsg.classList.add("chat-message", "user-message", "p-2", "mt-2");
+    userMsg.innerHTML = `<strong>You:</strong> ${message}`;
+    chatBox.appendChild(userMsg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // Create and append loading message
+    const loadingMsg = document.createElement("div");
+    loadingMsg.classList.add("chat-message", "bot-message", "p-2", "mt-2", "loading-container");
+    loadingMsg.innerHTML = `<strong>Bot:</strong> <span class="loading-spinner"></span>`;
+    chatBox.appendChild(loadingMsg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // Allow time for rendering before API call
+    setTimeout(() => {
+        fetch("https://api-inference.huggingface.co/models/microsoft/phi-1_5", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer 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", // Replace with your API key
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ inputs: message })
+        })
+        .then(response => response.json())
+        .then(data => {
+            chatBox.removeChild(loadingMsg); // Remove loading message
+
+            const botMsg = document.createElement("div");
+            botMsg.classList.add("chat-message", "bot-message", "p-2", "mt-2");
+
+            if (data && data.length > 0 && data[0].generated_text) {
+                botMsg.innerHTML = `<strong>Bot:</strong> ${data[0].generated_text}`;
+            } else {
+                fetch("https://api-inference.huggingface.co/models/gpt2", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer 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", // Replace with your API key
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ inputs: message })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    chatBox.removeChild(loadingMsg); // Remove loading message
+
+                    const botMsg = document.createElement("div");
+                    botMsg.classList.add("chat-message", "bot-message", "p-2", "mt-2");
+
+                    if (data && data.length > 0 && data[0].generated_text) {
+                        botMsg.innerHTML = `<strong>Bot:</strong> ${data[0].generated_text}`;
+                    } else {
+                        botMsg.innerHTML = `<strong>Bot:</strong> Sorry, I couldn't understand that.`;
+                    }
+                })
+            }
+
+            chatBox.appendChild(botMsg);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            chatBox.removeChild(loadingMsg); // Remove loading if an error occurs
+
+            const errorMsg = document.createElement("div");
+            errorMsg.classList.add("chat-message", "bot-message", "p-2", "mt-2");
+            errorMsg.innerHTML = `<strong>Bot:</strong> An error occurred. Please try again later.`;
+            chatBox.appendChild(errorMsg);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+    }, 100); // Delay to allow spinner rendering
+
+    userInput.value = "";
+}
+
+let isRecording = false;
+let mediaRecorder;
+let audioChunks = [];
+
+document.getElementById("mic-btn").addEventListener("click", () => {
+    if (!isRecording) {
+        startRecording();
+    } else {
+        stopRecording();
+    }
+});
+
+function startRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+        mediaRecorder.start();
+        isRecording = true;
+
+        document.getElementById("mic-btn").classList.add("recording");
+        document.getElementById("mic-icon").classList.replace("fa-microphone", "fa-stop");
+
+        mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+        };
+    }).catch(error => {
+        console.error("Microphone access denied:", error);
+    });
+}
+
+function stopRecording() {
+    mediaRecorder.stop();
+    isRecording = false;
+
+    document.getElementById("mic-btn").classList.remove("recording");
+    document.getElementById("mic-icon").classList.replace("fa-stop", "fa-microphone");
+
+    mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+        audioChunks = [];
+
+        // Convert & Send audio to Hugging Face API
+        await convertAndSendAudio(audioBlob);
+    };
+}
+
+async function convertAndSendAudio(audioBlob) {
+    try {
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "audio.wav");
+
+        const response = await fetch("/dashboard/transcribe/", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.text) {
+            document.getElementById("user-input").value = data.text;
+        } else {
+            console.error("Error in transcription:", data);
+            alert("Error in transcription. Try again.");
+        }
+    } catch (error) {
+        console.error("Error in transcription:", error);
+        alert("Error in transcription. Try again.");
+    }
+}
+
+async function convertToWav(audioBlob) {
+    return new Promise((resolve, reject) => {
+        const audioContext = new AudioContext({ sampleRate: 16000 });
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(audioBlob);
+
+        reader.onloadend = async () => {
+            try {
+                const audioBuffer = await audioContext.decodeAudioData(reader.result);
+                const offlineContext = new OfflineAudioContext(1, audioBuffer.length, 16000);
+                const source = offlineContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(offlineContext.destination);
+                source.start();
+
+                offlineContext.startRendering().then(renderedBuffer => {
+                    // Convert float32 array to PCM WAV
+                    const wavBlob = encodeWav(renderedBuffer);
+                    resolve(wavBlob);
+                }).catch(err => reject(err));
+            } catch (err) {
+                reject(err);
+            }
+        };
+    });
+}
+
+// Function to encode WAV format properly
+function encodeWav(audioBuffer) {
+    const numOfChannels = audioBuffer.numberOfChannels;
+    const sampleRate = audioBuffer.sampleRate;
+    const format = 1; // PCM
+    const bitsPerSample = 16;
+    const bytesPerSample = bitsPerSample / 8;
+    const numOfSamples = audioBuffer.length * numOfChannels;
+    const dataSize = numOfSamples * bytesPerSample;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+    let offset = 0;
+
+    function writeString(str) {
+        for (let i = 0; i < str.length; i++) {
+            view.setUint8(offset + i, str.charCodeAt(i));
+        }
+        offset += str.length;
+    }
+
+    function writeUint32(value) {
+        view.setUint32(offset, value, true);
+        offset += 4;
+    }
+
+    function writeUint16(value) {
+        view.setUint16(offset, value, true);
+        offset += 2;
+    }
+
+    // Write WAV Header
+    writeString("RIFF");
+    writeUint32(36 + dataSize);
+    writeString("WAVE");
+    writeString("fmt ");
+    writeUint32(16);
+    writeUint16(format);
+    writeUint16(numOfChannels);
+    writeUint32(sampleRate);
+    writeUint32(sampleRate * numOfChannels * bytesPerSample);
+    writeUint16(numOfChannels * bytesPerSample);
+    writeUint16(bitsPerSample);
+    writeString("data");
+    writeUint32(dataSize);
+
+    // Write audio samples
+    const audioData = audioBuffer.getChannelData(0);
+    let index = offset;
+    for (let i = 0; i < audioData.length; i++) {
+        let sample = Math.max(-1, Math.min(1, audioData[i]));
+        sample = sample < 0 ? sample * 32768 : sample * 32767;
+        view.setInt16(index, sample, true);
+        index += 2;
+    }
+
+    return new Blob([view], { type: "audio/wav" });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    let uploadPopup = document.getElementById("upload-popup");
+    let plusBtn = document.getElementById("plus-btn");
+    let uploadBtn = document.getElementById("upload-btn");
+    let fileInput = document.getElementById("file-input");
+    let userInput = document.getElementById("user-input");
+
+    // **1. Fix Upload Popup Toggle**
+    plusBtn.addEventListener("click", function () {
+        if (uploadPopup.style.display === "block") {
+            uploadPopup.style.display = "none";
+        } else {
+            uploadPopup.style.display = "block";
+        }
+    });
+
+    // **2. Handle File Upload**
+    uploadBtn.addEventListener("click", function () {
+        let file = fileInput.files[0];
+
+        if (!file) {
+            alert("Please select a file to upload.");
+            return;
+        }
+
+        let formData = new FormData();
+        formData.append("file", file);
+
+       fetch("/dashboard/upload/", {  // Correcting the URL path
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-CSRFToken": getCookie("csrftoken")
+            }
+        })
+
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert("Upload failed: " + data.error);
+                return;
+            }
+
+            // **3. Insert File Content into Text Box**
+            if (typeof data.file_content === "string") {
+                userInput.value = data.file_content;  // Insert file text into input
+            } else {
+                userInput.value = JSON.stringify(data.file_content, null, 2);  // If JSON (Excel), format nicely
+            }
+
+            // **4. Show Remove Button**
+            let removeBtn = document.createElement("button");
+            removeBtn.textContent = "✖";
+            removeBtn.classList.add("remove-file-btn");
+            removeBtn.onclick = function () {
+                userInput.value = "";
+                removeBtn.remove();
+            };
+
+            // Append remove button next to input field
+            userInput.parentNode.appendChild(removeBtn);
+
+            // Hide Upload Popup after success
+            uploadPopup.style.display = "none";
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Upload failed. Please try again.");
+        });
+    });
+
+    // **CSRF Token Helper Function**
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith(name + "=")) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+
+
+</script>
+{% endblock %}
+
+{% block localstyles %}
+<style>
+/* Layout Styling */
+.container-fluid {
+    height: 100vh; /* Full screen height */
+    display: flex;
+    overflow: hidden; /* Ensures only one scrollbar */
+}
+
+/* Content Area */
+.content-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    height: 100vh;
+    padding: 20px;
+}
+
+/* Chatbox Styling */
+.chat-box {
+    height: 400px; /* Adjusted height */
+    max-height: 70vh;
+    overflow-y: auto;
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+}
+
+/* Chat Messages */
+.chat-message {
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    max-width: 75%;
+}
+
+.user-message {
+    background-color: #ffdeeb;
+    text-align: right;
+    align-self: flex-end;
+}
+
+.bot-message {
+    background-color: #f1f1f1;
+    text-align: left;
+    align-self: flex-start;
+}
+
+/* Send Button */
+.send-btn {
+    background: #ff3f66; /* Matching header color */
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-weight: bold;
+}
+
+.send-btn:hover {
+    background: #e22e55;
+}
+
+/* Improved Loading Spinner */
+.loading-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(0, 0, 0, 0.2);
+    border-top-color: #ff3f66; /* Same color as Send button */
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 10px; /* Add some space after 'Bot:' */
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Microphone Button */
+.mic-btn {
+    border: 2px solid #ff3f66; /* Pink border */
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: transparent;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.mic-btn i {
+    color: #ff3f66; /* Pink mic icon */
+    font-size: 20px;
+}
+
+/* Hover effect */
+.mic-btn:hover {
+    background: #ff3f66;
+}
+
+.mic-btn:hover i {
+    color: white;
+}
+
+/* When recording, change to stop icon */
+.mic-btn.recording {
+    background: #ff3f66;
+}
+
+.mic-btn.recording i {
+    color: white;
+}
+
+/* 2nd march 2025 */
+/* Chat Input Container */
+.chat-input-container {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+/* Plus Button */
+.plus-btn {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+    padding: 8px 12px;
+}
+
+.plus-btn:hover {
+    color: #555;
+}
+
+/* File Upload Popup */
+.upload-popup {
+    display: none; /* Hidden initially */
+    position: absolute;
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
+    top: -60px;
+    left: 10px;
+}
+
+/* Upload Button */
+#upload-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.remove-file-btn {
+    background-color: #ff3f66;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    font-size: 14px;
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.remove-file-btn:hover {
+    background-color: #e22e55;
+}
+
+
+</style>
+{% endblock %}

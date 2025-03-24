@@ -1,0 +1,156 @@
+{% extends 'base_bs5.html' %}
+{% load static %}
+
+{% block title %}Digital Health{% endblock %}
+
+{% block body_class %}navbar-fixed navbar-md{% endblock %}
+
+{% block layout %}
+
+  {% block navbar %}
+    {% include 'navbar_bs5.html' %}
+  {% endblock %}
+
+  {% block alerts %}{% endblock %}
+
+  <div class="d-flex">
+
+    <!-- Sidebar -->
+    {% block sidebar %}
+    <aside class="sidebar bg-light p-3 shadow-sm">
+        <h4 class="text-center">Menu</h4>
+        <ul class="list-unstyled mt-3">
+            <li>Menu</li>
+            <li><a href="/" class="d-block py-2">Home</a></li>
+        </ul>
+    </aside>
+    {% endblock %}
+
+
+    <!-- Main Content Area -->
+    <main class="{% block main_class %}app-main{% endblock %} flex-grow-1 p-4">
+      {% block main %}{% endblock %}
+    </main>
+
+  </div>
+
+  {% block footer %}
+  <footer class="footer bg-dark text-white text-center p-3">
+    &copy; 2025 Digital Health | All Rights Reserved
+  </footer>
+  {% endblock %}
+
+  {% block overlay %}{% endblock %}
+
+{% endblock %}
+
+{% block localstyles %}
+<style>
+/* Sidebar Styling */
+.sidebar {
+    width: 300px;
+    height: calc(100vh - 60px); /* Full height minus the header height */
+    background: white;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    left: 0;
+    top: 60px; /* Push sidebar down below the header */
+    padding: 20px 10px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.sidebar h4 {
+    margin-top: 0;
+    text-align: center;
+    font-weight: 600;
+    color: #333;
+}
+
+.sidebar ul {
+    padding-left: 0;
+    margin-top: 15px; /* Ensure spacing between items */
+}
+
+.sidebar li {
+    list-style: none;
+}
+
+.sidebar a {
+    display: block;
+    padding: 12px 20px;
+    color: #ff3f66;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.sidebar a:hover {
+    background: #ff3f66;
+    color: white;
+}
+
+
+
+/* Content Area */
+.app-main {
+    margin-left: 270px; /* Prevents overlap with sidebar */
+    flex-grow: 1;
+    overflow-y: auto;
+    height: 100vh;
+    padding: 20px;
+}
+</style>
+{% endblock %}
+
+{% block appscripts %}
+<script class="view-script" type="text/javascript">
+(function () {
+  /* Navbar dropdown functionality */
+  document.querySelectorAll('.navbar .nav-menu.navbar-full-dropdown .nav-item.dropdown > *[data-bs-toggle="dropdown"]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('show')) {
+        e.target.closest('.navbar').classList.remove('active');
+      } else {
+        e.target.closest('.navbar').classList.add('active');
+      }
+    });
+  });
+
+  window.addEventListener('click', (e) => {
+    if(document.querySelectorAll('.navbar .nav-menu.navbar-full-dropdown .nav-item.dropdown .show').length === 0) {
+      const navbar = document.querySelector('.navbar');
+      if (!!navbar) {
+        navbar.classList.remove('active');
+      }
+    }
+  });
+
+  /* Navbar overlay menu */
+  const btnOpenNavbarOverlay = document.getElementById('btn-open-navbar-overlay');
+  const btnCloseNavbarOverlay = document.getElementById('btn-close-navbar-overlay');
+  const navbarOverlay = document.getElementById('navbar-overlay');
+  if (!!btnOpenNavbarOverlay) {
+    btnOpenNavbarOverlay.addEventListener('click', () => {
+      if (!!navbarOverlay) {
+        navbarOverlay.classList.add('active');
+      }
+    });
+  }
+  if (!!btnCloseNavbarOverlay) {
+    btnCloseNavbarOverlay.addEventListener('click', () => {
+      if (!!navbarOverlay) {
+        navbarOverlay.classList.remove('active');
+      }
+    });
+  }
+
+  // Bootstrap 5 tooltips
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+  });
+
+})();
+</script>
+{% endblock %}

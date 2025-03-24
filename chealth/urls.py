@@ -21,6 +21,7 @@ from django.conf.urls.static import static
 from chealth.middleware import login_not_required, session_security_exempt
 from apps.django_encrypted_filefield.constants import FETCH_URL_NAME
 from . import views
+from apps.dashboard.views import chat_api
 
 
 urlpatterns = [
@@ -36,6 +37,9 @@ urlpatterns = [
     path('messages/', include('apps.msgs.urls')),
     path('session_security/', include('apps.session_security.urls')),
     path('admin/', admin.site.urls),
+    path('social-auth/', include('social_django.urls', namespace='social')),
+    path('dashboard/', include('apps.dashboard.urls')), # Dashboard URLs
+    path('chat-api/', chat_api, name='chat_api'),
     re_path(r"^fetch/(?P<path>.+)", session_security_exempt(views.CHFetchView.as_view()), name=FETCH_URL_NAME),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
