@@ -95,3 +95,6 @@ dmypy.json
 
 # chiron lessons
 /static/chiron/*
+vosk-model-en-us-0.22.zip
+vosk-model-en-us-0.22.tar.gz
+model/
