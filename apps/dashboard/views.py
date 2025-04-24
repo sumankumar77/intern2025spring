@@ -3,7 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
+from django.views.decorators.http import require_http_methods
 from django.core.files.base import ContentFile
+from django.conf import settings
 import json
 import pandas as pd
 import docx
@@ -13,31 +15,143 @@ import tempfile
 import subprocess
 import requests
 from pydub import AudioSegment
+import markdown
+import logging
 
-
-@login_required
-def home(request):
-    return render(request, 'dashboard/home.html', {'user': request.user})
+logger = logging.getLogger(__name__)
 
 HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/facebook/wav2vec2-large-960h"
 HUGGINGFACE_API_KEY = "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"  # Replace with your API key
 
+@login_required
+# def home(request):
+#     return render(request, 'dashboard/home.html', {'user': request.user})
 
-@csrf_exempt  # Disable CSRF protection for testing; use proper authentication in production
+def home(request):
+    return render(request, 'dashboard/home.html', {
+        'user': request.user,
+        'gemini_api_key': settings.GEMINI_API_KEY  # Pass the API key securely
+    })
+
+
+
+# GEMINI_API_URL = "https://api.gemini.com/v1/your_endpoint"  # You need to replace 'your_endpoint' with the actual endpoint you're using.
+# GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+# GEMINI_API_KEY = settings.GEMINI_API_KEY  # Assuming you've already set this in your settings.py from the environment variable.
+
+# @csrf_exempt  # Disable CSRF protection for testing; use proper authentication in production
+# def chat_api(request):
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body)
+#             user_message = data.get("message", "")
+#
+#             if user_message:
+#                 headers = {
+#                     "Content-Type": "application/json"
+#                 }
+#                 body = json.dumps({
+#                     "contents": [
+#                         {
+#                             "parts": [{"text": user_message}]
+#                         }
+#                     ]
+#                 })
+#                 response = requests.post(
+#                     f"{GEMINI_API_URL}?key={settings.GEMINI_API_KEY}",
+#                     headers=headers,
+#                     data=body
+#                 )
+#                 if response.status_code == 200:
+#                     response_data = response.json()
+#                     return JsonResponse({"response": response_data})
+#                 else:
+#                     return JsonResponse({"error": "API call failed", "details": response.text}, status=response.status_code)
+#             else:
+#                 return JsonResponse({"error": "No message provided"}, status=400)
+#
+#         except json.JSONDecodeError:
+#             return JsonResponse({"error": "Invalid JSON"}, status=400)
+#
+#     return JsonResponse({"error": "Invalid request method"}, status=405)
+
+@csrf_exempt
+@require_http_methods(["POST"])  # Ensure that only POST requests are handled
 def chat_api(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            user_message = data.get("message", "")
+    try:
+        data = json.loads(request.body)
+        user_message = data.get("message", "")
 
-            # Dummy bot response
-            bot_response = f"I received and will get back to you soon!"
+        if not user_message:
+            return JsonResponse({"error": "No message provided"}, status=400)
 
-            return JsonResponse({"response": bot_response})
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        headers = {
+            "Content-Type": "application/json"
+        }
+        body = json.dumps({
+            "contents": [{"parts": [{"text": user_message}]}]
+        })
 
-    return JsonResponse({"error": "Invalid request method"}, status=405)
+        # Log the request to the Gemini API
+        logger.info(f"Request body to Gemini API: {body}")
+
+        response = requests.post(
+            f"{settings.GEMINI_API_URL}?key={settings.GEMINI_API_KEY}",
+            headers=headers,
+            data=body
+        )
+
+        # Log the response from the Gemini API
+        logger.debug(f"Response from Gemini API: Status {response.status_code}, Body {response.text}")
+
+        if response.status_code == 200:
+            logger.info(f"Received response from Gemini API: {response.json()}")
+            response_data = response.json()
+            formatted_response = format_response(response_data)
+            return JsonResponse({"response": formatted_response})
+        else:
+            logger.error(f"Failed API call with status {response.status_code}: {response.text}")
+            return JsonResponse({"error": "API call failed", "details": response.text}, status=response.status_code)
+
+    except json.JSONDecodeError:
+        logger.exception("Invalid JSON in request")
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        logger.exception("Unexpected error in chat_api")
+        return JsonResponse({"error": str(e)}, status=500)
+
+def format_response(data):
+    """Format the API response for chat display."""
+    print(f"Received response from Gemini API: {data}")
+    try:
+        # Navigate through the nested structure
+        candidates = data.get('candidates', [])
+        if candidates:
+            content_parts = candidates[0].get('content', {}).get('parts', [])
+            if content_parts:
+                text = content_parts[0].get('text', 'No response generated by the API.')
+                formatted_text = markdown.markdown(text)
+                return formatted_text
+        return "No valid response found in the API data."
+    except Exception as e:
+        print(f"Error processing response data: {str(e)}")
+        return "Error formatting the response."
+
+
+# def chat_api(request):
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body)
+#             user_message = data.get("message", "")
+#
+#             # Dummy bot response
+#             bot_response = f"I received and will get back to you soon!"
+#
+#             return JsonResponse({"response": bot_response})
+#         except json.JSONDecodeError:
+#             return JsonResponse({"error": "Invalid JSON"}, status=400)
+#
+#     return JsonResponse({"error": "Invalid request method"}, status=405)
 
 
 @csrf_exempt  # Disable CSRF for testing

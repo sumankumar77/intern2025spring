@@ -72,3 +72,4 @@ wcwidth==0.2.5
 wsproto==1.0.0
 zxcvbn==4.4.28
 posthog~=2.2.0
+openai>=1.0.0
